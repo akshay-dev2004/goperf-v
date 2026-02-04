@@ -1,5 +1,7 @@
 package main
 
+import "github.com/infraspecdev/goperf/cmd"
+
 func main() {
-	// Your code starts here
+	cmd.Execute()
 }
