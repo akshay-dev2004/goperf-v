@@ -10,7 +10,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-
 func validateTarget(input string) (*url.URL, error) {
 	u, err := url.ParseRequestURI(input)
 	if err != nil {
@@ -25,6 +24,13 @@ func validateTarget(input string) (*url.URL, error) {
 var runCmd = &cobra.Command{
 	Use:   "run <url>",
 	Short: "Command to give input URL",
+	Args: func(cmd *cobra.Command, args []string) error {
+		if len(args) == 0 {
+			return fmt.Errorf("missing required argument: URL")
+		}
+		return nil
+	},
+
 	Run: func(cmd *cobra.Command, args []string) {
 		u, err := validateTarget(args[0])
 		if err != nil {
