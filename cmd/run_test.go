@@ -34,3 +34,12 @@ func TestValidateTarget(t *testing.T) {
 		})
 	}
 }
+
+
+func TestRunCmdHasNFlag(t *testing.T) {
+   cmd := runCmd
+   flag := cmd.Flags().Lookup("n")
+   if flag == nil {
+       t.Error("Expected --n flag to exist, but it doesn't")
+   }
+}
