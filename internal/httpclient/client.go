@@ -14,8 +14,6 @@ type RequestResult struct {
    Error      error        
 }
 
-
-
 func MakeRequest(url string) (statusCode int, duration time.Duration, err error) {
 
 	start := time.Now()
@@ -50,6 +48,15 @@ func MakeRequest(url string) (statusCode int, duration time.Duration, err error)
 
 
 func RunMultiple(url string, n int) []RequestResult {
-   return make([]RequestResult, n)
+   results := make([]RequestResult, n)
+   for i := 0; i < n; i++ {
+       statusCode, duration, err := MakeRequest(url)
+       results[i] = RequestResult{
+           StatusCode: statusCode,
+           Duration:   duration,
+           Error:      err,
+       }
+   }
+   return results
 }
 

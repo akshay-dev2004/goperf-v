@@ -64,3 +64,18 @@ func TestRunMultipleExecutesNTimes(t *testing.T) {
        t.Fatalf("Expected 3 results, got %d", len(results))
    }
 }
+
+
+func TestRunMultipleCollectsResults(t *testing.T) {
+   server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+       w.WriteHeader(http.StatusOK)
+   }))
+   defer server.Close()
+  
+   results := RunMultiple(server.URL, 2)
+   for i, result := range results {
+       if result.StatusCode != http.StatusOK {
+           t.Errorf("Result %d: expected status 200", i)
+       }
+	}
+}
