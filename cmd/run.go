@@ -18,6 +18,13 @@ func validateTarget(input string) (*url.URL, error) {
 	return u, nil
 }
 
+func validateRequests(n int) error {
+	if n <= 0 {
+		return fmt.Errorf("number of requests must be positive, got %d", n)
+	}
+	return nil
+}
+
 var runCmd = &cobra.Command{
 	Use:   "run <url>",
 	Short: "Command to give input URL",
@@ -29,12 +36,23 @@ var runCmd = &cobra.Command{
 	},
 
 	Run: func(cmd *cobra.Command, args []string) {
+		requests, err := cmd.Flags().GetInt("n")
+		if err != nil {
+			fmt.Printf("Error getting requests flag: %v\n", err)
+			return
+		}
+
+		if err := validateRequests(requests); err != nil {
+			fmt.Printf("Invalid requests value: %v\n", err)
+			return
+		}
 		u, err := validateTarget(args[0])
 		if err != nil {
 			fmt.Println("Invalid URL:", err)
 			return
 		}
 		fmt.Println("Parsed URL:", u)
+		fmt.Printf("Making %d requests to %s\n", requests, u)
 	},
 }
 
