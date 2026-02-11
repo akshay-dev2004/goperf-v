@@ -52,3 +52,26 @@ func TestRunCommand_Prints404Status(t *testing.T) {
 	}
 }
 
+func TestRunCommand_Prints500Status(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer server.Close()
+
+	var out bytes.Buffer
+
+	err := runCommand(server.URL, &out)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	output := out.String()
+
+	if !strings.Contains(output, "Status: 500 Internal Server Error") {
+		t.Fatalf("expected 500 status line, got: %s", output)
+	}
+
+	if !strings.Contains(output, "Time:") {
+		t.Fatalf("expected time output, got: %s", output)
+	}
+}
