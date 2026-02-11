@@ -48,7 +48,7 @@ func runCommand(url string, out io.Writer) error {
 	statusText := http.StatusText(statusCode)
 
 	fmt.Fprintf(out, "Status: %d %s\n", statusCode, statusText)
-	fmt.Fprintf(out, "Time: %d ms\n", duration.Milliseconds())
+	fmt.Fprintf(out, "Time: %dms\n", duration.Milliseconds())
 
 	return nil
 }
