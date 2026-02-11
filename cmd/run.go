@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"net/url"
+	"os"
 
 	"github.com/spf13/cobra"
 )
@@ -18,6 +19,13 @@ func validateTarget(input string) (*url.URL, error) {
 	return u, nil
 }
 
+func validateRequests(n int) error {
+	if n <= 0 {
+		return fmt.Errorf("number of requests must be positive, got %d", n)
+	}
+	return nil
+}
+
 var runCmd = &cobra.Command{
 	Use:   "run <url>",
 	Short: "Command to give input URL",
@@ -29,15 +37,27 @@ var runCmd = &cobra.Command{
 	},
 
 	Run: func(cmd *cobra.Command, args []string) {
+		requests, err := cmd.Flags().GetInt("requests")
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error getting requests flag: %v\n", err)
+			os.Exit(1)
+		}
+
+		if err := validateRequests(requests); err != nil {
+			fmt.Fprintf(os.Stderr, "Invalid requests value: %v\n", err)
+			os.Exit(1)
+		}
 		u, err := validateTarget(args[0])
 		if err != nil {
-			fmt.Println("Invalid URL:", err)
-			return
+			fmt.Fprintln(os.Stderr, "Invalid URL:", err)
+			os.Exit(1)
 		}
 		fmt.Println("Parsed URL:", u)
+		fmt.Printf("Making %d requests to %s\n", requests, u)
 	},
 }
 
 func init() {
+	runCmd.Flags().IntP("requests", "n", 1, "Number of requests to execute")
 	rootCmd.AddCommand(runCmd)
 }
