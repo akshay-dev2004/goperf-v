@@ -39,17 +39,17 @@ var runCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		requests, err := cmd.Flags().GetInt("n")
 		if err != nil {
-			fmt.Printf("Error getting requests flag: %v\n", err)
+			fmt.Fprintf(os.Stderr, "Error getting requests flag: %v\n", err)
 			os.Exit(1)
 		}
 
 		if err := validateRequests(requests); err != nil {
-			fmt.Printf("Invalid requests value: %v\n", err)
+			fmt.Fprintf(os.Stderr, "Invalid requests value: %v\n", err)
 			os.Exit(1)
 		}
 		u, err := validateTarget(args[0])
 		if err != nil {
-			fmt.Println("Invalid URL:", err)
+			fmt.Fprintln(os.Stderr, "Invalid URL:", err)
 			os.Exit(1)
 		}
 		fmt.Println("Parsed URL:", u)
