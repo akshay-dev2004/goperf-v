@@ -41,7 +41,7 @@ func TestValidateTarget(t *testing.T) {
 
 func TestRunCmdHasNFlag(t *testing.T) {
    cmd := runCmd
-   flag := cmd.Flags().Lookup("n")
+   flag := cmd.Flags().Lookup("requests")
    if flag == nil {
        t.Error("Expected --n flag to exist, but it doesn't")
    }
@@ -50,7 +50,7 @@ func TestRunCmdHasNFlag(t *testing.T) {
 
 func TestNFlagDefaultValue(t *testing.T) {
    cmd := runCmd
-   requests, err := cmd.Flags().GetInt("n")
+   requests, err := cmd.Flags().GetInt("requests")
    if err != nil {
        t.Errorf("Error getting requests flag: %v", err)
    }
@@ -74,8 +74,8 @@ func TestNFlagPositiveValidation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cmd := runCmd
-			cmd.Flags().Set("n", fmt.Sprintf("%d", tt.input))
-			requests, err := cmd.Flags().GetInt("n")
+			cmd.Flags().Set("requests", fmt.Sprintf("%d", tt.input))
+			requests, err := cmd.Flags().GetInt("requests")
 			if err != nil {
 				t.Fatalf("Error getting flag value: %v", err)
 			}
