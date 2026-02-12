@@ -75,3 +75,28 @@ func TestRunCommand_Prints500Status(t *testing.T) {
 		t.Fatalf("expected time output, got: %s", output)
 	}
 }
+
+func TestRunCommand_MultipleRequests(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusCreated)
+	}))
+	defer server.Close()
+
+	var out bytes.Buffer
+	requests := 3
+
+	err := runCommandMultiple(server.URL, requests, &out)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	output := out.String()
+	count := strings.Count(output, "Status: 201 Created")
+	if count != requests {
+		t.Fatalf("expected %d status lines, got %d. Output: %s", requests, count, output)
+	}
+
+	if strings.Count(output, "Time:") != requests {
+		t.Fatalf("expected %d time outputs, got: %s", requests, output)
+	}
+}
