@@ -15,7 +15,7 @@ func TestMakeRequestSuccess(t *testing.T) {
 	}))
 	defer server.Close()
 
-	status, duration, err := MakeRequest(server.URL)
+	status, duration, err := MakeRequest(context.Background(), server.URL)
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -31,8 +31,7 @@ func TestMakeRequestSuccess(t *testing.T) {
 }
 
 func TestMakeRequestConnectionRefused(t *testing.T) {
-	// No server running on this port → connection refused
-	_, _, err := MakeRequest("http://127.0.0.1:9999")
+	_, _, err := MakeRequest(context.Background(), "http://127.0.0.1:9999")
 
 	if err == nil {
 		t.Fatalf("expected error, got nil")
@@ -44,7 +43,7 @@ func TestMakeRequestConnectionRefused(t *testing.T) {
 }
 
 func TestMakeRequestNoSuchHost(t *testing.T) {
-	_, _, err := MakeRequest("http://this-host-does-not-exist-12345")
+	_, _, err := MakeRequest(context.Background(), "http://this-host-does-not-exist-12345")
 
 	if err == nil {
 		t.Fatalf("expected error, got nil")
@@ -56,15 +55,16 @@ func TestMakeRequestNoSuchHost(t *testing.T) {
 	}
 }
 
-
 func TestRunMultipleExecutesNTimes(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer server.Close()
+
 	results := RunMultiple(context.Background(), server.URL, 3)
+
 	if len(results) != 3 {
-		t.Fatalf("Expected 3 results, got %d", len(results))
+		t.Fatalf("expected 3 results, got %d", len(results))
 	}
 }
 
@@ -75,9 +75,10 @@ func TestRunMultipleCollectsResults(t *testing.T) {
 	defer server.Close()
 
 	results := RunMultiple(context.Background(), server.URL, 2)
+
 	for i, result := range results {
 		if result.StatusCode != http.StatusOK {
-			t.Errorf("Result %d: expected status 200", i)
+			t.Errorf("result %d: expected status 200, got %d", i, result.StatusCode)
 		}
 	}
 }
