@@ -15,12 +15,20 @@ type RequestResult struct {
 	Error      error
 }
 
-func MakeRequest(url string) (statusCode int, duration time.Duration, err error) {
+var client = &http.Client{
+	Timeout: 10 * time.Second,
+}
+
+func MakeRequest(ctx context.Context,url string) (statusCode int, duration time.Duration, err error) {
 
 	start := time.Now()
 
-	resp, err := http.Get(url)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return 0, 0, err
+	}
 
+	resp, err := client.Do(req)
 	duration = time.Since(start)
 
 	if err != nil {
@@ -50,7 +58,7 @@ func MakeRequest(url string) (statusCode int, duration time.Duration, err error)
 func RunMultiple(ctx context.Context, url string, n int) []RequestResult {
 	results := make([]RequestResult, n)
 	for i := 0; i < n; i++ {
-		statusCode, duration, err := MakeRequest(url)
+		statusCode, duration, err := MakeRequest(ctx,url)
 		results[i] = RequestResult{
 			StatusCode: statusCode,
 			Duration:   duration,
