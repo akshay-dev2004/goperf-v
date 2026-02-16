@@ -40,3 +40,41 @@ func TestMinResponseTime_EmptySlice(t *testing.T) {
 		t.Errorf("expected min 0 for empty slice, got %v", min)
 	}
 }
+
+
+
+func TestMaxResponseTime_NormalCase(t *testing.T) {
+	input := []time.Duration{
+		30 * time.Millisecond,
+		10 * time.Millisecond,
+		20 * time.Millisecond,
+	}
+
+	max := MaxResponseTime(input)
+
+	if max != 30*time.Millisecond {
+		t.Errorf("expected max 30ms, got %v", max)
+	}
+}
+
+func TestMaxResponseTime_SingleValue(t *testing.T) {
+	input := []time.Duration{
+		15 * time.Millisecond,
+	}
+
+	max := MaxResponseTime(input)
+
+	if max != 15*time.Millisecond {
+		t.Errorf("expected max 15ms, got %v", max)
+	}
+}
+
+func TestMaxResponseTime_EmptySlice(t *testing.T) {
+	var input []time.Duration
+
+	max := MaxResponseTime(input)
+
+	if max != 0 {
+		t.Errorf("expected max 0 for empty slice, got %v", max)
+	}
+}

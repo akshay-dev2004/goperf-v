@@ -16,3 +16,20 @@ func MinResponseTime(durations []time.Duration) time.Duration {
 
 	return min
 }
+
+
+func MaxResponseTime(durations []time.Duration) time.Duration {
+	if len(durations) == 0 {
+		return 0
+	}
+
+	max := durations[0]
+	for _, d := range durations {
+		if d > max {
+			max = d
+		}
+	}
+
+	return max
+}
+
