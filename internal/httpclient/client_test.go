@@ -104,3 +104,39 @@ func TestRunMultipleEachRequestGetsOwnTimeout(t *testing.T) {
 		}
 	}
 }
+
+func TestMakeRequestTimeoutExceeded(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(500 * time.Millisecond)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	_, _, err := MakeRequest(context.Background(), server.URL, 50*time.Millisecond)
+
+	if err == nil {
+		t.Fatal("expected timeout error, got nil")
+	}
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("expected context.DeadlineExceeded, got %v", err)
+	}
+}
+
+func TestRunMultipleTimeoutExceeded(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(500 * time.Millisecond)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	results := RunMultiple(context.Background(), server.URL, 3, 50*time.Millisecond)
+
+	for i, result := range results {
+		if result.Error == nil {
+			t.Errorf("request %d: expected timeout error, got nil", i)
+		}
+		if result.StatusCode != 0 {
+			t.Errorf("request %d: expected status 0, got %d", i, result.StatusCode)
+		}
+	}
+}
