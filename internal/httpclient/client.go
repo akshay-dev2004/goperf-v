@@ -3,6 +3,7 @@ package httpclient
 import (
 	"context"
 	"errors"
+	"io"
 	"net"
 	"net/http"
 	"strings"
@@ -15,15 +16,15 @@ type RequestResult struct {
 	Error      error
 }
 
-var client = &http.Client{
-	Timeout: 10 * time.Second,
-}
+var client = &http.Client{}
 
-func MakeRequest(ctx context.Context,url string) (statusCode int, duration time.Duration, err error) {
+func MakeRequest(ctx context.Context, rawURL string, timeout time.Duration) (statusCode int, duration time.Duration, err error) {
+	reqCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
 
 	start := time.Now()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	req, err := http.NewRequestWithContext(reqCtx, http.MethodGet, rawURL, nil)
 	if err != nil {
 		return 0, 0, err
 	}
@@ -50,15 +51,16 @@ func MakeRequest(ctx context.Context,url string) (statusCode int, duration time.
 		return 0, duration, err
 	}
 
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
+	_, _ = io.Copy(io.Discard, resp.Body)
 
 	return resp.StatusCode, duration, nil
 }
 
-func RunMultiple(ctx context.Context, url string, n int) []RequestResult {
+func RunMultiple(ctx context.Context, rawURL string, n int, timeout time.Duration) []RequestResult {
 	results := make([]RequestResult, n)
 	for i := 0; i < n; i++ {
-		statusCode, duration, err := MakeRequest(ctx,url)
+		statusCode, duration, err := MakeRequest(ctx, rawURL, timeout)
 		results[i] = RequestResult{
 			StatusCode: statusCode,
 			Duration:   duration,
