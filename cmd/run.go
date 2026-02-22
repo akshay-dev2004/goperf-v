@@ -66,7 +66,9 @@ var runCmd = &cobra.Command{
 func runCommand(url string, out io.Writer) error {
 	statusCode, duration, err := httpclient.MakeRequest(url)
 	if err != nil {
-		return err
+		fmt.Fprintf(out, "Status: N/A\n")
+		fmt.Fprintf(out, "Time: N/A\n")
+		return nil
 	}
 
 	statusText := http.StatusText(statusCode)
