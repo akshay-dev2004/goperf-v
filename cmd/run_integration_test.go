@@ -101,3 +101,13 @@ func TestRunCommand_MultipleRequests(t *testing.T) {
 		t.Fatalf("expected %d time outputs, got: %s", requests, output)
 	}
 }
+
+
+func TestRunUsesConcurrentWhenCSet(t *testing.T) {
+	var buf bytes.Buffer
+
+	err := runCommandMultipleConcurrent("http://example.com", 3, 2, 2*time.Second, &buf)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}

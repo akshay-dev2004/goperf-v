@@ -88,7 +88,7 @@ var runCmd = &cobra.Command{
 		fmt.Printf("Making %d requests to %s\n", requests, u)
 
 		if requests > 1 {
-			return runCommandMultiple(args[0], requests, timeout, cmd.OutOrStdout())
+			return runCommandMultipleConcurrent(args[0], requests, concurrency, timeout, cmd.OutOrStdout())
 		}
 		return runCommand(args[0], timeout, cmd.OutOrStdout())
 	},
@@ -130,6 +130,19 @@ func runCommandMultiple(target string, n int, timeout time.Duration, out io.Writ
 		if err != nil {
 			return fmt.Errorf("error writing duration: %w", err)
 		}
+	}
+	return nil
+}
+
+func runCommandMultipleConcurrent(target string, n int, concurrency int, timeout time.Duration, out io.Writer) error {
+	results := httpclient.RunMultipleConcurrent(context.Background(), target, n, concurrency, timeout)
+
+	for _, res := range results {
+		if res.Error != nil {
+			return res.Error
+		}
+		fmt.Fprintf(out, "Status: %d %s\n", res.StatusCode, http.StatusText(res.StatusCode))
+		fmt.Fprintf(out, "Time: %dms\n", res.Duration.Milliseconds())
 	}
 	return nil
 }
