@@ -84,8 +84,9 @@ var runCmd = &cobra.Command{
 func runCommand(target string, timeout time.Duration, out io.Writer) error {
 	statusCode, duration, err := httpclient.MakeRequest(context.Background(), target, timeout)
 	if err != nil {
-		fmt.Fprintf(out, "Status: N/A\n")
-		fmt.Fprintf(out, "Time: N/A\n")
+		fmt.Fprintf(out, "Status: Error\n")
+		fmt.Fprintf(out, "Time: %dms\n", duration.Milliseconds())
+		fmt.Fprintf(out, "Error: %v\n", err)
 		return nil
 	}
 
@@ -109,8 +110,9 @@ func runCommandMultiple(target string, n int, timeout time.Duration, out io.Writ
 	durations := make([]time.Duration, 0, len(results))
 	for _, res := range results {
 		if res.Error != nil {
-			fmt.Fprintf(out, "Status: N/A\n")
-			fmt.Fprintf(out, "Time: N/A\n")
+			fmt.Fprintf(out, "Status: Error\n")
+			fmt.Fprintf(out, "Time: %dms\n", res.Duration.Milliseconds())
+			fmt.Fprintf(out, "Error: %v\n", res.Error)
 			continue
 		}
 		statusText := http.StatusText(res.StatusCode)
