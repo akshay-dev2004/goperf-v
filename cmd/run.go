@@ -9,10 +9,7 @@ import (
 	"time"
 
 	"github.com/infraspecdev/goperf/internal/httpclient"
-<<<<<<< HEAD
-=======
 	"github.com/infraspecdev/goperf/internal/stats"
->>>>>>> feature/response-time-clean
 	"github.com/spf13/cobra"
 )
 
@@ -78,7 +75,6 @@ var runCmd = &cobra.Command{
 		fmt.Printf("Making %d requests to %s\n", requests, u)
 
 		if requests > 1 {
-<<<<<<< HEAD
 			return runCommandMultiple(args[0], requests, timeout, cmd.OutOrStdout())
 		}
 		return runCommand(args[0], timeout, cmd.OutOrStdout())
@@ -87,16 +83,6 @@ var runCmd = &cobra.Command{
 
 func runCommand(target string, timeout time.Duration, out io.Writer) error {
 	statusCode, duration, err := httpclient.MakeRequest(context.Background(), target, timeout)
-=======
-			return runCommandMultiple(args[0], requests, cmd.OutOrStdout())
-		}
-		return runCommand(args[0], cmd.OutOrStdout())
-	},
-}
-
-func runCommand(url string, out io.Writer) error {
-	statusCode, duration, err := httpclient.MakeRequest(url)
->>>>>>> feature/response-time-clean
 	if err != nil {
 		fmt.Fprintf(out, "Status: N/A\n")
 		fmt.Fprintf(out, "Time: N/A\n")
@@ -117,13 +103,15 @@ func runCommand(url string, out io.Writer) error {
 	return nil
 }
 
-<<<<<<< HEAD
 func runCommandMultiple(target string, n int, timeout time.Duration, out io.Writer) error {
 	results := httpclient.RunMultiple(context.Background(), target, n, timeout)
 
+	durations := make([]time.Duration, 0, len(results))
 	for _, res := range results {
 		if res.Error != nil {
-			return res.Error
+			fmt.Fprintf(out, "Status: N/A\n")
+			fmt.Fprintf(out, "Time: N/A\n")
+			continue
 		}
 		statusText := http.StatusText(res.StatusCode)
 		_, err := fmt.Fprintf(out, "Status: %d %s\n", res.StatusCode, statusText)
@@ -134,42 +122,20 @@ func runCommandMultiple(target string, n int, timeout time.Duration, out io.Writ
 		if err != nil {
 			return fmt.Errorf("error writing duration: %w", err)
 		}
-	}
-=======
-func runCommandMultiple(url string, n int, out io.Writer) error {
-	results := httpclient.RunMultiple(nil, url, n)
-
-	var successfulDurations []time.Duration
-
-	for _, res := range results {
-		if res.Error != nil {
-			continue
-		}
-
-		successfulDurations = append(successfulDurations, res.Duration)
-
-		statusText := http.StatusText(res.StatusCode)
-		fmt.Fprintf(out, "Status: %d %s\n", res.StatusCode, statusText)
-		fmt.Fprintf(out, "Time: %dms\n", res.Duration.Milliseconds())
+		durations = append(durations, res.Duration)
 	}
 
-	// If zero successful
-	if len(successfulDurations) == 0 {
-		fmt.Fprintf(out, "\nMin: N/A\n")
-		fmt.Fprintf(out, "Max: N/A\n")
-		fmt.Fprintf(out, "Avg: N/A\n")
-		return nil
+	if len(durations) > 0 {
+		min := stats.MinResponseTime(durations)
+		max := stats.MaxResponseTime(durations)
+		avg := stats.AverageResponseTime(durations)
+
+		fmt.Fprintf(out, "\nStatistics:\n")
+		fmt.Fprintf(out, "  Min: %dms\n", min.Milliseconds())
+		fmt.Fprintf(out, "  Max: %dms\n", max.Milliseconds())
+		fmt.Fprintf(out, "  Avg: %dms\n", avg.Milliseconds())
 	}
 
-	min := stats.MinResponseTime(successfulDurations)
-	max := stats.MaxResponseTime(successfulDurations)
-	avg := stats.AverageResponseTime(successfulDurations)
-
-	fmt.Fprintf(out, "\nMin: %dms\n", min.Milliseconds())
-	fmt.Fprintf(out, "Max: %dms\n", max.Milliseconds())
-	fmt.Fprintf(out, "Avg: %dms\n", avg.Milliseconds())
-
->>>>>>> feature/response-time-clean
 	return nil
 }
 

@@ -100,4 +100,17 @@ func TestRunCommand_MultipleRequests(t *testing.T) {
 	if strings.Count(output, "Time:") != requests {
 		t.Fatalf("expected %d time outputs, got: %s", requests, output)
 	}
+
+	if !strings.Contains(output, "Statistics:") {
+		t.Fatalf("expected Statistics header, got: %s", output)
+	}
+	if !strings.Contains(output, "Min:") {
+		t.Fatalf("expected Min statistic, got: %s", output)
+	}
+	if !strings.Contains(output, "Max:") {
+		t.Fatalf("expected Max statistic, got: %s", output)
+	}
+	if !strings.Contains(output, "Avg:") {
+		t.Fatalf("expected Avg statistic, got: %s", output)
+	}
 }
