@@ -140,3 +140,27 @@ func TestRunMultipleTimeoutExceeded(t *testing.T) {
 		}
 	}
 }
+
+func TestRunMultipleConcurrent_UsesConcurrency(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(100 * time.Millisecond)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	n := 4
+	concurrency := 4
+	timeout := 2 * time.Second
+
+	start := time.Now()
+	results := RunMultipleConcurrent(context.Background(), server.URL, n, concurrency, timeout)
+	elapsed := time.Since(start)
+
+	if len(results) != n {
+		t.Fatalf("expected %d results, got %d", n, len(results))
+	}
+
+	if elapsed > 250*time.Millisecond {
+		t.Fatalf("expected concurrent execution, took %v", elapsed)
+	}
+}
