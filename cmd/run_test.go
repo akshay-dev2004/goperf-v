@@ -153,3 +153,9 @@ func TestConcurrencyFlagExists(t *testing.T) {
 		t.Fatal("expected concurrency flag to exist")
 	}
 }
+
+func TestValidateConcurrency(t *testing.T) {
+	if err := validateConcurrency(0); err == nil {
+		t.Fatal("expected error for zero concurrency")
+	}
+}

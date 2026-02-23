@@ -37,6 +37,13 @@ func validateTimeout(d time.Duration) error {
 	return nil
 }
 
+func validateConcurrency(c int) error {
+	if c <= 0 {
+		return fmt.Errorf("concurrency must be positive, got %d", c)
+	}
+	return nil
+}
+
 var runCmd = &cobra.Command{
 	Use:   "run <url>",
 	Short: "Command to give input URL",
@@ -47,6 +54,13 @@ var runCmd = &cobra.Command{
 		return nil
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
+		concurrency, err := cmd.Flags().GetInt("concurrency")
+		if err != nil {
+			return err
+		}
+		if err := validateConcurrency(concurrency); err != nil {
+			return err
+		}
 		requests, err := cmd.Flags().GetInt("requests")
 		if err != nil {
 			return fmt.Errorf("error getting requests flag: %w", err)
