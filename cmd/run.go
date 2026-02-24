@@ -158,13 +158,32 @@ func runCommandMultiple(target string, n int, timeout time.Duration, out io.Writ
 func runCommandMultipleConcurrent(target string, n int, concurrency int, timeout time.Duration, out io.Writer) error {
 	results := httpclient.RunMultipleConcurrent(context.Background(), target, n, concurrency, timeout)
 
+	durations := make([]time.Duration, 0, len(results))
+
 	for _, res := range results {
 		if res.Error != nil {
-			return res.Error
+			fmt.Fprintf(out, "Status: Error\n")
+			fmt.Fprintf(out, "Time: %dms\n", res.Duration.Milliseconds())
+			fmt.Fprintf(out, "Error: %v\n", res.Error)
+			continue
 		}
+
 		fmt.Fprintf(out, "Status: %d %s\n", res.StatusCode, http.StatusText(res.StatusCode))
 		fmt.Fprintf(out, "Time: %dms\n", res.Duration.Milliseconds())
+		durations = append(durations, res.Duration)
 	}
+
+	if len(durations) > 0 {
+		min := stats.MinResponseTime(durations)
+		max := stats.MaxResponseTime(durations)
+		avg := stats.AverageResponseTime(durations)
+
+		fmt.Fprintf(out, "\nStatistics:\n")
+		fmt.Fprintf(out, "  Min: %dms\n", min.Milliseconds())
+		fmt.Fprintf(out, "  Max: %dms\n", max.Milliseconds())
+		fmt.Fprintf(out, "  Avg: %dms\n", avg.Milliseconds())
+	}
+
 	return nil
 }
 
