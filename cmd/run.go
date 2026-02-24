@@ -55,38 +55,29 @@ var runCmd = &cobra.Command{
 		return nil
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		concurrency, err := cmd.Flags().GetInt("concurrency")
-		if err != nil {
-			return fmt.Errorf("error getting concurrency flag: %w", err)
-		}
+		f := cmd.Flags()
+
+		concurrency, _ := f.GetInt("concurrency")
+		requests, _ := f.GetInt("requests")
+		timeout, _ := f.GetDuration("timeout")
+
 		if err := validateConcurrency(concurrency); err != nil {
-			return fmt.Errorf("invalid concurrency value: %w", err)
+			return err
 		}
-		requests, err := cmd.Flags().GetInt("requests")
-		if err != nil {
-			return fmt.Errorf("error getting requests flag: %w", err)
-		}
-
 		if err := validateRequests(requests); err != nil {
-			return fmt.Errorf("invalid requests value: %w", err)
+			return err
 		}
-
-		timeout, err := cmd.Flags().GetDuration("timeout")
-		if err != nil {
-			return fmt.Errorf("error getting timeout flag: %w", err)
-		}
-
 		if err := validateTimeout(timeout); err != nil {
-			return fmt.Errorf("invalid timeout value: %w", err)
+			return err
 		}
 
 		u, err := validateTarget(args[0])
 		if err != nil {
-			return fmt.Errorf("invalid URL: %w", err)
+			return err
 		}
 
 		fmt.Println("Parsed URL:", u)
-		fmt.Printf("Making %d requests to %s\n", requests, u)
+		fmt.Printf("Making %d requests to %s with concurrency %d\n", requests, u, concurrency)
 
 		return runCommandMultipleConcurrent(args[0], requests, concurrency, timeout, cmd.OutOrStdout())
 	},
