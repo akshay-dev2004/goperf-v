@@ -8,8 +8,8 @@ import (
 	"net"
 	"net/http"
 	"strings"
-	"time"
 	"sync"
+	"time"
 )
 
 type RequestResult struct {
@@ -71,7 +71,6 @@ func RunMultiple(ctx context.Context, rawURL string, n int, timeout time.Duratio
 	}
 	return results
 }
-
 
 func RunMultipleConcurrent(ctx context.Context, rawURL string, n, concurrency int, timeout time.Duration) []RequestResult {
 	results := make([]RequestResult, n)
