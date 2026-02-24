@@ -103,15 +103,6 @@ func TestRunCommand_MultipleRequests(t *testing.T) {
 	}
 }
 
-func TestRunUsesConcurrentWhenCSet(t *testing.T) {
-	var buf bytes.Buffer
-
-	err := runCommandMultipleConcurrent("http://example.com", 3, 2, 2*time.Second, &buf)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-}
-
 func TestRunCommand_Concurrency(t *testing.T) {
 	var currentConcurrency int32
 	var maxConcurrency int32
