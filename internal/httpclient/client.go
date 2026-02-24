@@ -61,7 +61,7 @@ func MakeRequest(ctx context.Context, rawURL string, timeout time.Duration) (sta
 
 func RunMultipleConcurrent(ctx context.Context, rawURL string, n, concurrency int, timeout time.Duration) []RequestResult {
 	results := make([]RequestResult, n)
-	jobs := make(chan int)
+	jobs := make(chan int, concurrency)
 
 	var wg sync.WaitGroup
 	wg.Add(concurrency)
