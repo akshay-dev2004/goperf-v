@@ -59,19 +59,6 @@ func MakeRequest(ctx context.Context, rawURL string, timeout time.Duration) (sta
 	return resp.StatusCode, duration, nil
 }
 
-func RunMultiple(ctx context.Context, rawURL string, n int, timeout time.Duration) []RequestResult {
-	results := make([]RequestResult, n)
-	for i := 0; i < n; i++ {
-		statusCode, duration, err := MakeRequest(ctx, rawURL, timeout)
-		results[i] = RequestResult{
-			StatusCode: statusCode,
-			Duration:   duration,
-			Error:      err,
-		}
-	}
-	return results
-}
-
 func RunMultipleConcurrent(ctx context.Context, rawURL string, n, concurrency int, timeout time.Duration) []RequestResult {
 	results := make([]RequestResult, n)
 	jobs := make(chan int)
@@ -83,6 +70,10 @@ func RunMultipleConcurrent(ctx context.Context, rawURL string, n, concurrency in
 		go func() {
 			defer wg.Done()
 			for i := range jobs {
+				if ctx.Err() != nil {
+					results[i] = RequestResult{Error: ctx.Err()}
+					continue
+				}
 				statusCode, duration, err := MakeRequest(ctx, rawURL, timeout)
 				results[i] = RequestResult{
 					StatusCode: statusCode,
@@ -94,6 +85,9 @@ func RunMultipleConcurrent(ctx context.Context, rawURL string, n, concurrency in
 	}
 
 	for i := 0; i < n; i++ {
+		if ctx.Err() != nil {
+			break
+		}
 		jobs <- i
 	}
 	close(jobs)
