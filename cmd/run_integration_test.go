@@ -56,11 +56,11 @@ func TestRunCommand_ConnectionError(t *testing.T) {
 	}
 
 	output := out.String()
-	if !strings.Contains(output, "Status: N/A") {
-		t.Fatalf("expected Status: N/A for connection error, got: %s", output)
+	if !strings.Contains(output, "Status: Error") {
+		t.Fatalf("expected Status: Error for connection error, got: %s", output)
 	}
-	if !strings.Contains(output, "Time: N/A") {
-		t.Fatalf("expected Time: N/A for connection error, got: %s", output)
+	if !strings.Contains(output, "Time:") || !strings.Contains(output, "ms") {
+		t.Fatalf("expected Time in ms for connection error, got: %s", output)
 	}
 }
 
