@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -58,15 +59,39 @@ func MakeRequest(ctx context.Context, rawURL string, timeout time.Duration) (sta
 	return resp.StatusCode, duration, nil
 }
 
-func RunMultiple(ctx context.Context, rawURL string, n int, timeout time.Duration) []RequestResult {
+func RunMultipleConcurrent(ctx context.Context, rawURL string, n, concurrency int, timeout time.Duration) []RequestResult {
 	results := make([]RequestResult, n)
-	for i := 0; i < n; i++ {
-		statusCode, duration, err := MakeRequest(ctx, rawURL, timeout)
-		results[i] = RequestResult{
-			StatusCode: statusCode,
-			Duration:   duration,
-			Error:      err,
-		}
+	jobs := make(chan int, concurrency)
+
+	var wg sync.WaitGroup
+	wg.Add(concurrency)
+
+	for w := 0; w < concurrency; w++ {
+		go func() {
+			defer wg.Done()
+			for i := range jobs {
+				if ctx.Err() != nil {
+					results[i] = RequestResult{Error: ctx.Err()}
+					continue
+				}
+				statusCode, duration, err := MakeRequest(ctx, rawURL, timeout)
+				results[i] = RequestResult{
+					StatusCode: statusCode,
+					Duration:   duration,
+					Error:      err,
+				}
+			}
+		}()
 	}
+
+	for i := 0; i < n; i++ {
+		if ctx.Err() != nil {
+			break
+		}
+		jobs <- i
+	}
+	close(jobs)
+
+	wg.Wait()
 	return results
 }

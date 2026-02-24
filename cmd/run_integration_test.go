@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -29,7 +30,7 @@ func TestRunCommand_StatusCodes(t *testing.T) {
 
 			var out bytes.Buffer
 
-			err := runCommand(server.URL, 10*time.Second, &out)
+			err := runCommandMultipleConcurrent(server.URL, 1, 1, 10*time.Second, &out)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -50,7 +51,7 @@ func TestRunCommand_StatusCodes(t *testing.T) {
 func TestRunCommand_ConnectionError(t *testing.T) {
 	var out bytes.Buffer
 
-	err := runCommand("http://localhost:9999", 500*time.Millisecond, &out)
+	err := runCommandMultipleConcurrent("http://localhost:9999", 1, 1, 500*time.Millisecond, &out)
 	if err != nil {
 		t.Fatalf("runCommand should handle connection errors gracefully and not return error, got: %v", err)
 	}
@@ -73,7 +74,7 @@ func TestRunCommand_MultipleRequests(t *testing.T) {
 	var out bytes.Buffer
 	requests := 3
 
-	err := runCommandMultiple(server.URL, requests, 10*time.Second, &out)
+	err := runCommandMultipleConcurrent(server.URL, requests, 1, 10*time.Second, &out)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -100,4 +101,63 @@ func TestRunCommand_MultipleRequests(t *testing.T) {
 	if !strings.Contains(output, "Avg:") {
 		t.Fatalf("expected Avg statistic, got: %s", output)
 	}
+}
+
+func TestRunCommand_Concurrency(t *testing.T) {
+	var currentConcurrency int32
+	var maxConcurrency int32
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		count := atomic.AddInt32(&currentConcurrency, 1)
+		defer atomic.AddInt32(&currentConcurrency, -1)
+
+		for {
+			currentMax := atomic.LoadInt32(&maxConcurrency)
+			if count <= currentMax {
+				break
+			}
+			if atomic.CompareAndSwapInt32(&maxConcurrency, currentMax, count) {
+				break
+			}
+		}
+
+		time.Sleep(100 * time.Millisecond)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	var out bytes.Buffer
+	requests := "10"
+	concurrency := "5"
+	rootCmd.SetOut(&out)
+	rootCmd.SetArgs([]string{"run", server.URL, "-n", requests, "-c", concurrency})
+
+	defer func() {
+		_ = runCmd.Flags().Set("requests", "1")
+		_ = runCmd.Flags().Set("concurrency", "1")
+		_ = runCmd.Flags().Set("timeout", "10s")
+	}()
+
+	start := time.Now()
+	err := rootCmd.Execute()
+	duration := time.Since(start)
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if duration > 500*time.Millisecond {
+		t.Errorf("Concurrency test took too long: %v (expected < 500ms)", duration)
+	}
+
+	maxSeen := atomic.LoadInt32(&maxConcurrency)
+	if maxSeen < 5 {
+		t.Errorf("Expected max concurrency 5, but server only saw %d", maxSeen)
+	}
+
+	output := out.String()
+	if !strings.Contains(output, "Statistics:") {
+		t.Errorf("Expected output to contain statistics, but it didn't")
+	}
+
+	t.Logf("Test finished in %v, max concurrency seen by server: %d", duration, maxSeen)
 }

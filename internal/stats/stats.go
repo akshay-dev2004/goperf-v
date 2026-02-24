@@ -17,7 +17,6 @@ func MinResponseTime(durations []time.Duration) time.Duration {
 	return min
 }
 
-
 func MaxResponseTime(durations []time.Duration) time.Duration {
 	if len(durations) == 0 {
 		return 0

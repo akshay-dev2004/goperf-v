@@ -6,6 +6,8 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
+	"os/signal"
 	"time"
 
 	"github.com/infraspecdev/goperf/internal/httpclient"
@@ -38,6 +40,13 @@ func validateTimeout(d time.Duration) error {
 	return nil
 }
 
+func validateConcurrency(c int) error {
+	if c <= 0 {
+		return fmt.Errorf("concurrency must be positive, got %d", c)
+	}
+	return nil
+}
+
 var runCmd = &cobra.Command{
 	Use:   "run <url>",
 	Short: "Command to give input URL",
@@ -48,94 +57,101 @@ var runCmd = &cobra.Command{
 		return nil
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		requests, err := cmd.Flags().GetInt("requests")
-		if err != nil {
-			return fmt.Errorf("error getting requests flag: %w", err)
-		}
+		f := cmd.Flags()
 
+		concurrency, _ := f.GetInt("concurrency")
+		requests, _ := f.GetInt("requests")
+		timeout, _ := f.GetDuration("timeout")
+
+		if err := validateConcurrency(concurrency); err != nil {
+			return err
+		}
 		if err := validateRequests(requests); err != nil {
-			return fmt.Errorf("invalid requests value: %w", err)
+			return err
 		}
-
-		timeout, err := cmd.Flags().GetDuration("timeout")
-		if err != nil {
-			return fmt.Errorf("error getting timeout flag: %w", err)
-		}
-
 		if err := validateTimeout(timeout); err != nil {
-			return fmt.Errorf("invalid timeout value: %w", err)
+			return err
 		}
 
 		u, err := validateTarget(args[0])
 		if err != nil {
-			return fmt.Errorf("invalid URL: %w", err)
+			return err
 		}
 
 		fmt.Println("Parsed URL:", u)
-		fmt.Printf("Making %d requests to %s\n", requests, u)
+		fmt.Printf("Making %d requests to %s with concurrency %d\n", requests, u, concurrency)
 
-		if requests > 1 {
-			return runCommandMultiple(args[0], requests, timeout, cmd.OutOrStdout())
-		}
-		return runCommand(args[0], timeout, cmd.OutOrStdout())
+		return runCommandMultipleConcurrent(args[0], requests, concurrency, timeout, cmd.OutOrStdout())
 	},
 }
 
-func runCommand(target string, timeout time.Duration, out io.Writer) error {
-	statusCode, duration, err := httpclient.MakeRequest(context.Background(), target, timeout)
-	if err != nil {
-		fmt.Fprintf(out, "Status: Error\n")
-		fmt.Fprintf(out, "Time: %dms\n", duration.Milliseconds())
-		fmt.Fprintf(out, "Error: %v\n", err)
-		return nil
+func runCommandMultipleConcurrent(target string, n int, concurrency int, timeout time.Duration, out io.Writer) error {
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer stop()
+
+	results := httpclient.RunMultipleConcurrent(ctx, target, n, concurrency, timeout)
+
+	durations := make([]time.Duration, 0, len(results))
+	for _, res := range results {
+		if err := printResult(out, res); err != nil {
+			return err
+		}
+		if res.Error == nil {
+			durations = append(durations, res.Duration)
+		}
 	}
 
-	statusText := http.StatusText(statusCode)
-
-	_, err = fmt.Fprintf(out, "Status: %d %s\n", statusCode, statusText)
-	if err != nil {
-		return fmt.Errorf("error writing status: %w", err)
-	}
-	_, err = fmt.Fprintf(out, "Time: %dms\n", duration.Milliseconds())
-	if err != nil {
-		return fmt.Errorf("error writing duration: %w", err)
+	if err := printStatistics(out, durations); err != nil {
+		return err
 	}
 
 	return nil
 }
 
-func runCommandMultiple(target string, n int, timeout time.Duration, out io.Writer) error {
-	results := httpclient.RunMultiple(context.Background(), target, n, timeout)
-
-	durations := make([]time.Duration, 0, len(results))
-	for _, res := range results {
-		if res.Error != nil {
-			fmt.Fprintf(out, "Status: Error\n")
-			fmt.Fprintf(out, "Time: %dms\n", res.Duration.Milliseconds())
-			fmt.Fprintf(out, "Error: %v\n", res.Error)
-			continue
+func printResult(out io.Writer, res httpclient.RequestResult) error {
+	if res.Error != nil {
+		if _, err := fmt.Fprintf(out, "Status: Error\n"); err != nil {
+			return err
 		}
-		statusText := http.StatusText(res.StatusCode)
-		_, err := fmt.Fprintf(out, "Status: %d %s\n", res.StatusCode, statusText)
-		if err != nil {
-			return fmt.Errorf("error writing status: %w", err)
+		if _, err := fmt.Fprintf(out, "Time: %dms\n", res.Duration.Milliseconds()); err != nil {
+			return err
 		}
-		_, err = fmt.Fprintf(out, "Time: %dms\n", res.Duration.Milliseconds())
-		if err != nil {
-			return fmt.Errorf("error writing duration: %w", err)
+		if _, err := fmt.Fprintf(out, "Error: %v\n", res.Error); err != nil {
+			return err
 		}
-		durations = append(durations, res.Duration)
+		return nil
 	}
 
-	if len(durations) > 0 {
-		min := stats.MinResponseTime(durations)
-		max := stats.MaxResponseTime(durations)
-		avg := stats.AverageResponseTime(durations)
+	if _, err := fmt.Fprintf(out, "Status: %d %s\n", res.StatusCode, http.StatusText(res.StatusCode)); err != nil {
+		return err
+	}
+	if _, err := fmt.Fprintf(out, "Time: %dms\n", res.Duration.Milliseconds()); err != nil {
+		return err
+	}
 
-		fmt.Fprintf(out, "\nStatistics:\n")
-		fmt.Fprintf(out, "  Min: %dms\n", min.Milliseconds())
-		fmt.Fprintf(out, "  Max: %dms\n", max.Milliseconds())
-		fmt.Fprintf(out, "  Avg: %dms\n", avg.Milliseconds())
+	return nil
+}
+
+func printStatistics(out io.Writer, durations []time.Duration) error {
+	if len(durations) == 0 {
+		return nil
+	}
+
+	min := stats.MinResponseTime(durations)
+	max := stats.MaxResponseTime(durations)
+	avg := stats.AverageResponseTime(durations)
+
+	if _, err := fmt.Fprintf(out, "\nStatistics:\n"); err != nil {
+		return err
+	}
+	if _, err := fmt.Fprintf(out, "Min: %dms\n", min.Milliseconds()); err != nil {
+		return err
+	}
+	if _, err := fmt.Fprintf(out, "Max: %dms\n", max.Milliseconds()); err != nil {
+		return err
+	}
+	if _, err := fmt.Fprintf(out, "Avg: %dms\n", avg.Milliseconds()); err != nil {
+		return err
 	}
 
 	return nil
@@ -144,5 +160,6 @@ func runCommandMultiple(target string, n int, timeout time.Duration, out io.Writ
 func init() {
 	runCmd.Flags().IntP("requests", "n", 1, "Number of requests to execute")
 	runCmd.Flags().DurationP("timeout", "t", 10*time.Second, "Timeout per request")
+	runCmd.Flags().IntP("concurrency", "c", 1, "Number of concurrent workers")
 	rootCmd.AddCommand(runCmd)
 }
