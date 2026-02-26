@@ -47,6 +47,13 @@ func validateConcurrency(c int) error {
 	return nil
 }
 
+func validateDuration(d time.Duration) error {
+	if d < 0 {
+		return fmt.Errorf("duration must not be negative, got %v", d)
+	}
+	return nil
+}
+
 var runCmd = &cobra.Command{
 	Use:   "run <url>",
 	Short: "Command to give input URL",

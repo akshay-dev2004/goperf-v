@@ -206,3 +206,32 @@ func TestDurationFlagDefault(t *testing.T) {
 		t.Errorf("expected default duration to be 0s, got %v", duration)
 	}
 }
+
+func TestValidateDuration(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   time.Duration
+		wantErr bool
+	}{
+		{"Valid: 10 seconds", 10 * time.Second, false},
+		{"Valid: 1 minute", 1 * time.Minute, false},
+		{"Valid: zero (disabled)", 0, false},
+		{"Invalid: negative", -1 * time.Second, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateDuration(tt.input)
+
+			if tt.wantErr {
+				if err == nil {
+					t.Errorf("Expected error but got none for input %v", tt.input)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Unexpected error for input %v: %v", tt.input, err)
+				}
+			}
+		})
+	}
+}
