@@ -38,3 +38,18 @@ func TestHistogramRecorder_Min(t *testing.T) {
 		t.Errorf("expected min ~%v, got %v", expected, min)
 	}
 }
+
+func TestHistogramRecorder_Max(t *testing.T) {
+	recorder := NewHistogramRecorder(10 * time.Second)
+
+	recorder.Record(10 * time.Millisecond)
+	recorder.Record(20 * time.Millisecond)
+	recorder.Record(30 * time.Millisecond)
+
+	max := recorder.Max()
+	expected := 30 * time.Millisecond
+
+	if max < expected-time.Millisecond || max > expected+time.Millisecond {
+		t.Errorf("expected max ~%v, got %v", expected, max)
+	}
+}

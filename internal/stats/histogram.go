@@ -27,3 +27,7 @@ func (h *HistogramRecorder) Count() int64 {
 func (h *HistogramRecorder) Min() time.Duration {
 	return time.Duration(h.histogram.Min()) * time.Nanosecond
 }
+
+func (h *HistogramRecorder) Max() time.Duration {
+	return time.Duration(h.histogram.Max()) * time.Nanosecond
+}
