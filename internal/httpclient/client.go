@@ -14,12 +14,6 @@ import (
 	"github.com/infraspecdev/goperf/internal/stats"
 )
 
-type RequestResult struct {
-	StatusCode int
-	Duration   time.Duration
-	Error      error
-}
-
 var client = &http.Client{}
 
 func MakeRequest(ctx context.Context, rawURL string, timeout time.Duration) (statusCode int, duration time.Duration, err error) {
