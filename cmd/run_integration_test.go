@@ -137,7 +137,7 @@ func TestRunCommand_DurationMode(t *testing.T) {
 
 	var out bytes.Buffer
 
-	runCmd.Flags().Set("requests", "1")
+	_ = runCmd.Flags().Set("requests", "1")
 	runCmd.Flags().Lookup("requests").Changed = false
 
 	rootCmd.SetOut(&out)
