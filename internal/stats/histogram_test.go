@@ -96,3 +96,33 @@ func TestHistogramRecorder_Percentiles(t *testing.T) {
 		})
 	}
 }
+
+func TestHistogramRecorder_RecordFailure(t *testing.T) {
+	recorder := NewHistogramRecorder(10 * time.Second)
+
+	recorder.RecordFailure()
+	recorder.RecordFailure()
+
+	if recorder.FailedCount() != 2 {
+		t.Errorf("expected 2 failed requests, got %d", recorder.FailedCount())
+	}
+}
+
+func TestHistogramRecorder_TotalRequests(t *testing.T) {
+	recorder := NewHistogramRecorder(10 * time.Second)
+
+	recorder.Record(5 * time.Millisecond)
+	recorder.Record(10 * time.Millisecond)
+	recorder.RecordFailure()
+	recorder.RecordFailure()
+
+	if recorder.TotalRequests() != 4 {
+		t.Errorf("expected 4 total requests, got %d", recorder.TotalRequests())
+	}
+	if recorder.Count() != 2 {
+		t.Errorf("expected 2 successful requests, got %d", recorder.Count())
+	}
+	if recorder.FailedCount() != 2 {
+		t.Errorf("expected 2 failed requests, got %d", recorder.FailedCount())
+	}
+}
