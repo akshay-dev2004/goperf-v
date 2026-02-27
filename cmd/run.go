@@ -126,6 +126,7 @@ func runCommandMultipleConcurrent(target string, n int, concurrency int, timeout
 
 	return nil
 }
+
 func printHistogramStatistics(out io.Writer, recorder *stats.HistogramRecorder, target string, elapsed time.Duration) error {
 	totalReqs := recorder.TotalRequests()
 	successReqs := recorder.Count()
@@ -145,8 +146,10 @@ func printHistogramStatistics(out io.Writer, recorder *stats.HistogramRecorder, 
 	if _, err := fmt.Fprintf(out, "Requests:   %d total (%d succeeded, %d failed)\n\n", totalReqs, successReqs, failedReqs); err != nil {
 		return err
 	}
-
-	if totalReqs == 0 {
+	if successReqs == 0 {
+		if _, err := fmt.Fprintf(out, "Throughput: %.1f requests/sec\n", throughput); err != nil {
+			return err
+		}
 		return nil
 	}
 
