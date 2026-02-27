@@ -136,6 +136,10 @@ func TestRunCommand_DurationMode(t *testing.T) {
 	defer server.Close()
 
 	var out bytes.Buffer
+
+	runCmd.Flags().Set("requests", "1")
+	runCmd.Flags().Lookup("requests").Changed = false
+
 	rootCmd.SetOut(&out)
 	rootCmd.SetArgs([]string{"run", server.URL, "--duration", "1s", "-c", "2"})
 

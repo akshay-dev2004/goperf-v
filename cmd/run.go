@@ -85,6 +85,10 @@ var runCmd = &cobra.Command{
 			return err
 		}
 
+		if f.Changed("requests") && f.Changed("duration") {
+			return fmt.Errorf("cannot use both --requests (-n) and --duration (-d) at the same time")
+		}
+
 		if duration > 0 {
 			fmt.Fprintf(cmd.OutOrStdout(), "Running for %v against %s with concurrency %d\n", duration, u, concurrency)
 			return runCommandDuration(args[0], concurrency, timeout, duration, cmd.OutOrStdout())
