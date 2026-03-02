@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
+	"strings"
 	"time"
 
 	"github.com/infraspecdev/goperf/internal/httpclient"
@@ -83,6 +84,9 @@ var runCmd = &cobra.Command{
 		requests, _ := f.GetInt("requests")
 		timeout, _ := f.GetDuration("timeout")
 		duration, _ := f.GetDuration("duration")
+		method, _ := f.GetString("method")
+		body, _ := f.GetString("body")
+		method = strings.ToUpper(method)
 
 		if err := validateConcurrency(concurrency); err != nil {
 			return err
@@ -93,6 +97,11 @@ var runCmd = &cobra.Command{
 		if err := validateDuration(duration); err != nil {
 			return err
 		}
+		if err := validateMethod(method); err != nil {
+			return err
+		}
+
+		_ = body
 
 		u, err := validateTarget(args[0])
 		if err != nil {
