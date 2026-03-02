@@ -114,7 +114,7 @@ var runCmd = &cobra.Command{
 
 		if duration > 0 {
 			fmt.Fprintf(cmd.OutOrStdout(), "Running for %v against %s with concurrency %d\n", duration, u, concurrency)
-			return runCommandDuration(args[0], concurrency, timeout, duration, cmd.OutOrStdout())
+			return runCommandDuration(args[0], concurrency, timeout, duration, method, body, cmd.OutOrStdout())
 		}
 
 		if err := validateRequests(requests); err != nil {
@@ -124,27 +124,27 @@ var runCmd = &cobra.Command{
 		fmt.Println("Parsed URL:", u)
 		fmt.Printf("Making %d requests to %s with concurrency %d\n", requests, u, concurrency)
 
-		return runCommandMultipleConcurrent(args[0], requests, concurrency, timeout, cmd.OutOrStdout())
+		return runCommandMultipleConcurrent(args[0], requests, concurrency, timeout, method, body, cmd.OutOrStdout())
 	},
 }
 
-func runCommandDuration(target string, concurrency int, timeout time.Duration, duration time.Duration, out io.Writer) error {
+func runCommandDuration(target string, concurrency int, timeout time.Duration, duration time.Duration, method string, body string, out io.Writer) error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 
 	start := time.Now()
-	recorder := httpclient.RunForDuration(ctx, target, concurrency, timeout, duration)
+	recorder := httpclient.RunForDuration(ctx, target, concurrency, timeout, duration, method, body)
 	elapsed := time.Since(start)
 
 	return printHistogramStatistics(out, recorder, target, elapsed)
 }
 
-func runCommandMultipleConcurrent(target string, n int, concurrency int, timeout time.Duration, out io.Writer) error {
+func runCommandMultipleConcurrent(target string, n int, concurrency int, timeout time.Duration, method string, body string, out io.Writer) error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 
 	start := time.Now()
-	recorder := httpclient.RunMultipleConcurrent(ctx, target, n, concurrency, timeout)
+	recorder := httpclient.RunMultipleConcurrent(ctx, target, n, concurrency, timeout, method, body)
 	elapsed := time.Since(start)
 
 	if err := printHistogramStatistics(out, recorder, target, elapsed); err != nil {

@@ -109,7 +109,7 @@ func TestRunMultipleConcurrent_UsesConcurrency(t *testing.T) {
 	timeout := 2 * time.Second
 
 	start := time.Now()
-	recorder := RunMultipleConcurrent(context.Background(), server.URL, n, concurrency, timeout)
+	recorder := RunMultipleConcurrent(context.Background(), server.URL, n, concurrency, timeout, "GET", "")
 
 	if recorder == nil {
 		t.Fatal("expected non-nil recorder returned")
@@ -137,7 +137,7 @@ func TestRunForDuration_ReturnsHistogram(t *testing.T) {
 	timeout := 2 * time.Second
 
 	start := time.Now()
-	recorder := RunForDuration(context.Background(), server.URL, concurrency, timeout, duration)
+	recorder := RunForDuration(context.Background(), server.URL, concurrency, timeout, duration, "GET", "")
 	elapsed := time.Since(start)
 
 	if recorder == nil {
@@ -174,7 +174,7 @@ func TestRunForDuration_RespectsContext(t *testing.T) {
 	}()
 
 	start := time.Now()
-	recorder := RunForDuration(ctx, server.URL, 2, 2*time.Second, 5*time.Second)
+	recorder := RunForDuration(ctx, server.URL, 2, 2*time.Second, 5*time.Second, "GET", "")
 	elapsed := time.Since(start)
 
 	if recorder == nil {

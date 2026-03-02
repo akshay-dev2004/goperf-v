@@ -67,7 +67,7 @@ func isContextCancellation(err error) bool {
 	return errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)
 }
 
-func RunMultipleConcurrent(ctx context.Context, rawURL string, n, concurrency int, timeout time.Duration) *stats.HistogramRecorder {
+func RunMultipleConcurrent(ctx context.Context, rawURL string, n, concurrency int, timeout time.Duration, method string, body string) *stats.HistogramRecorder {
 	jobs := make(chan int, concurrency)
 	recorder := stats.NewHistogramRecorder(timeout)
 
@@ -81,7 +81,7 @@ func RunMultipleConcurrent(ctx context.Context, rawURL string, n, concurrency in
 				if ctx.Err() != nil {
 					continue
 				}
-				_, duration, err := MakeRequest(ctx, rawURL, timeout, "GET", "")
+				_, duration, err := MakeRequest(ctx, rawURL, timeout, method, body)
 				if err == nil {
 					recorder.Record(duration)
 				} else if !isContextCancellation(err) {
@@ -103,7 +103,7 @@ func RunMultipleConcurrent(ctx context.Context, rawURL string, n, concurrency in
 	return recorder
 }
 
-func RunForDuration(ctx context.Context, rawURL string, concurrency int, timeout time.Duration, duration time.Duration) *stats.HistogramRecorder {
+func RunForDuration(ctx context.Context, rawURL string, concurrency int, timeout time.Duration, duration time.Duration, method string, body string) *stats.HistogramRecorder {
 	recorder := stats.NewHistogramRecorder(timeout)
 
 	reqCtx, cancel := context.WithTimeout(ctx, duration)
@@ -119,7 +119,7 @@ func RunForDuration(ctx context.Context, rawURL string, concurrency int, timeout
 				if reqCtx.Err() != nil {
 					return
 				}
-				_, d, err := MakeRequest(reqCtx, rawURL, timeout, "GET", "")
+				_, d, err := MakeRequest(reqCtx, rawURL, timeout, method, body)
 				if err == nil {
 					recorder.Record(d)
 				} else if !isContextCancellation(err) {
