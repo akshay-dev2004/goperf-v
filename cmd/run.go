@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
+	"strings"
 	"time"
 
 	"github.com/infraspecdev/goperf/internal/httpclient"
@@ -53,6 +54,20 @@ func validateDuration(d time.Duration) error {
 	return nil
 }
 
+var validMethods = map[string]bool{
+	"GET":    true,
+	"POST":   true,
+	"PUT":    true,
+	"DELETE": true,
+}
+
+func validateMethod(method string) error {
+	if !validMethods[method] {
+		return fmt.Errorf("invalid HTTP method %q, supported methods: GET, POST, PUT, DELETE", method)
+	}
+	return nil
+}
+
 var runCmd = &cobra.Command{
 	Use:   "run <url>",
 	Short: "Command to give input URL",
@@ -69,6 +84,9 @@ var runCmd = &cobra.Command{
 		requests, _ := f.GetInt("requests")
 		timeout, _ := f.GetDuration("timeout")
 		duration, _ := f.GetDuration("duration")
+		method, _ := f.GetString("method")
+		body, _ := f.GetString("body")
+		method = strings.ToUpper(method)
 
 		if err := validateConcurrency(concurrency); err != nil {
 			return err
@@ -77,6 +95,9 @@ var runCmd = &cobra.Command{
 			return err
 		}
 		if err := validateDuration(duration); err != nil {
+			return err
+		}
+		if err := validateMethod(method); err != nil {
 			return err
 		}
 
@@ -91,7 +112,7 @@ var runCmd = &cobra.Command{
 
 		if duration > 0 {
 			fmt.Fprintf(cmd.OutOrStdout(), "Running for %v against %s with concurrency %d\n", duration, u, concurrency)
-			return runCommandDuration(args[0], concurrency, timeout, duration, cmd.OutOrStdout())
+			return runCommandDuration(args[0], concurrency, timeout, duration, method, body, cmd.OutOrStdout())
 		}
 
 		if err := validateRequests(requests); err != nil {
@@ -101,27 +122,27 @@ var runCmd = &cobra.Command{
 		fmt.Println("Parsed URL:", u)
 		fmt.Printf("Making %d requests to %s with concurrency %d\n", requests, u, concurrency)
 
-		return runCommandMultipleConcurrent(args[0], requests, concurrency, timeout, cmd.OutOrStdout())
+		return runCommandMultipleConcurrent(args[0], requests, concurrency, timeout, method, body, cmd.OutOrStdout())
 	},
 }
 
-func runCommandDuration(target string, concurrency int, timeout time.Duration, duration time.Duration, out io.Writer) error {
+func runCommandDuration(target string, concurrency int, timeout time.Duration, duration time.Duration, method string, body string, out io.Writer) error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 
 	start := time.Now()
-	recorder := httpclient.RunForDuration(ctx, target, concurrency, timeout, duration)
+	recorder := httpclient.RunForDuration(ctx, target, concurrency, timeout, duration, method, body)
 	elapsed := time.Since(start)
 
 	return printHistogramStatistics(out, recorder, target, elapsed)
 }
 
-func runCommandMultipleConcurrent(target string, n int, concurrency int, timeout time.Duration, out io.Writer) error {
+func runCommandMultipleConcurrent(target string, n int, concurrency int, timeout time.Duration, method string, body string, out io.Writer) error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 
 	start := time.Now()
-	recorder := httpclient.RunMultipleConcurrent(ctx, target, n, concurrency, timeout)
+	recorder := httpclient.RunMultipleConcurrent(ctx, target, n, concurrency, timeout, method, body)
 	elapsed := time.Since(start)
 
 	if err := printHistogramStatistics(out, recorder, target, elapsed); err != nil {
@@ -191,5 +212,7 @@ func init() {
 	runCmd.Flags().DurationP("timeout", "t", 10*time.Second, "Timeout per request")
 	runCmd.Flags().IntP("concurrency", "c", 1, "Number of concurrent workers")
 	runCmd.Flags().DurationP("duration", "d", 0, "Duration to run the test (e.g., 10s, 1m)")
+	runCmd.Flags().StringP("method", "m", "GET", "HTTP method to use")
+	runCmd.Flags().StringP("body", "b", "", "Request body content")
 	rootCmd.AddCommand(runCmd)
 }

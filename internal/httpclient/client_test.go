@@ -3,6 +3,7 @@ package httpclient
 import (
 	"context"
 	"errors"
+	"io"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -19,7 +20,7 @@ func TestMakeRequestSuccess(t *testing.T) {
 	}))
 	defer server.Close()
 
-	status, duration, err := MakeRequest(context.Background(), server.URL, testTimeout)
+	status, duration, err := MakeRequest(context.Background(), server.URL, testTimeout, "GET", "")
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -79,7 +80,7 @@ func TestMakeRequest_Errors(t *testing.T) {
 				targetURL = server.URL
 			}
 
-			_, _, err := MakeRequest(context.Background(), targetURL, tt.timeout)
+			_, _, err := MakeRequest(context.Background(), targetURL, tt.timeout, "GET", "")
 
 			if err == nil {
 				t.Fatalf("expected error, got nil")
@@ -108,7 +109,7 @@ func TestRunMultipleConcurrent_UsesConcurrency(t *testing.T) {
 	timeout := 2 * time.Second
 
 	start := time.Now()
-	recorder := RunMultipleConcurrent(context.Background(), server.URL, n, concurrency, timeout)
+	recorder := RunMultipleConcurrent(context.Background(), server.URL, n, concurrency, timeout, "GET", "")
 
 	if recorder == nil {
 		t.Fatal("expected non-nil recorder returned")
@@ -136,7 +137,7 @@ func TestRunForDuration_ReturnsHistogram(t *testing.T) {
 	timeout := 2 * time.Second
 
 	start := time.Now()
-	recorder := RunForDuration(context.Background(), server.URL, concurrency, timeout, duration)
+	recorder := RunForDuration(context.Background(), server.URL, concurrency, timeout, duration, "GET", "")
 	elapsed := time.Since(start)
 
 	if recorder == nil {
@@ -173,7 +174,7 @@ func TestRunForDuration_RespectsContext(t *testing.T) {
 	}()
 
 	start := time.Now()
-	recorder := RunForDuration(ctx, server.URL, 2, 2*time.Second, 5*time.Second)
+	recorder := RunForDuration(ctx, server.URL, 2, 2*time.Second, 5*time.Second, "GET", "")
 	elapsed := time.Since(start)
 
 	if recorder == nil {
@@ -181,5 +182,83 @@ func TestRunForDuration_RespectsContext(t *testing.T) {
 	}
 	if elapsed > 1*time.Second {
 		t.Errorf("expected early stop due to context cancellation, took %v", elapsed)
+	}
+}
+
+func TestMakeRequest_Methods(t *testing.T) {
+	tests := []struct {
+		method string
+	}{
+		{"GET"},
+		{"POST"},
+		{"PUT"},
+		{"DELETE"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.method, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.Method != tt.method {
+					t.Errorf("expected %s method, got %s", tt.method, r.Method)
+					w.WriteHeader(http.StatusMethodNotAllowed)
+					return
+				}
+				w.WriteHeader(http.StatusOK)
+			}))
+			defer server.Close()
+
+			status, _, err := MakeRequest(context.Background(), server.URL, testTimeout, tt.method, "")
+			if err != nil {
+				t.Fatalf("expected no error, got %v", err)
+			}
+			if status != http.StatusOK {
+				t.Fatalf("expected status 200, got %d", status)
+			}
+		})
+	}
+}
+
+func TestMakeRequestWithBody(t *testing.T) {
+	expectedBody := `{"key":"value"}`
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Fatalf("failed to read request body: %v", err)
+		}
+		if string(body) != expectedBody {
+			t.Errorf("expected body %q, got %q", expectedBody, string(body))
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	status, _, err := MakeRequest(context.Background(), server.URL, testTimeout, "POST", expectedBody)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if status != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", status)
+	}
+}
+
+func TestMakeRequestGetNoBody(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Fatalf("failed to read request body: %v", err)
+		}
+		if len(body) != 0 {
+			t.Errorf("expected empty body for GET, got %q", string(body))
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	status, _, err := MakeRequest(context.Background(), server.URL, testTimeout, "GET", "")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if status != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", status)
 	}
 }

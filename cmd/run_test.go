@@ -262,3 +262,74 @@ func TestPrintHistogramStatistics(t *testing.T) {
 		}
 	}
 }
+
+func TestMethodFlagExists(t *testing.T) {
+	cmd := runCmd
+	flag := cmd.Flags().Lookup("method")
+	if flag == nil {
+		t.Fatal("Expected --method flag to exist")
+	}
+}
+
+func TestMethodFlagDefaultValue(t *testing.T) {
+	cmd := runCmd
+	method, err := cmd.Flags().GetString("method")
+	if err != nil {
+		t.Fatalf("Error getting method flag: %v", err)
+	}
+	if method != "GET" {
+		t.Errorf("Expected default method to be GET, got %v", method)
+	}
+}
+
+func TestValidateMethod(t *testing.T) {
+	tests := []struct {
+		name    string
+		method  string
+		wantErr bool
+	}{
+		{"Valid: GET", "GET", false},
+		{"Valid: POST", "POST", false},
+		{"Valid: PUT", "PUT", false},
+		{"Valid: DELETE", "DELETE", false},
+		{"Invalid: PATCH", "PATCH", true},
+		{"Invalid: RANDOM", "INVALID", true},
+		{"Invalid: Empty", "", true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateMethod(tt.method)
+			if tt.wantErr {
+				if err == nil {
+					t.Errorf("Expected error for method %q, but got none", tt.method)
+				} else if !strings.Contains(err.Error(), "supported methods: GET, POST, PUT, DELETE") {
+					t.Errorf("Error message %q should contain supported methods list", err.Error())
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Unexpected error for method %q: %v", tt.method, err)
+				}
+			}
+		})
+	}
+}
+
+func TestBodyFlagExists(t *testing.T) {
+	cmd := runCmd
+	flag := cmd.Flags().Lookup("body")
+	if flag == nil {
+		t.Fatal("Expected --body flag to exist")
+	}
+}
+
+func TestBodyFlagDefaultValue(t *testing.T) {
+	cmd := runCmd
+	body, err := cmd.Flags().GetString("body")
+	if err != nil {
+		t.Fatalf("Error getting body flag: %v", err)
+	}
+	if body != "" {
+		t.Errorf("Expected default body to be empty string, got %q", body)
+	}
+}

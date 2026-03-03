@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -148,6 +149,8 @@ func TestRunCommand_DurationMode(t *testing.T) {
 		_ = runCmd.Flags().Set("concurrency", "1")
 		_ = runCmd.Flags().Set("timeout", "10s")
 		_ = runCmd.Flags().Set("duration", "0s")
+		runCmd.Flags().Lookup("duration").Changed = false
+		runCmd.Flags().Lookup("requests").Changed = false
 	}()
 
 	start := time.Now()
@@ -170,4 +173,113 @@ func TestRunCommand_DurationMode(t *testing.T) {
 		}
 	}
 
+}
+
+func TestRunCommand_MethodFlag(t *testing.T) {
+	methods := []string{"GET", "POST", "PUT", "DELETE"}
+
+	for _, method := range methods {
+		t.Run(method, func(t *testing.T) {
+			var receivedMethod string
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				receivedMethod = r.Method
+				w.WriteHeader(http.StatusOK)
+			}))
+			defer server.Close()
+
+			var out bytes.Buffer
+			rootCmd.SetOut(&out)
+			rootCmd.SetArgs([]string{"run", server.URL, "-n", "1", "-m", method})
+
+			defer func() {
+				_ = runCmd.Flags().Set("requests", "1")
+				_ = runCmd.Flags().Set("concurrency", "1")
+				_ = runCmd.Flags().Set("timeout", "10s")
+				_ = runCmd.Flags().Set("method", "GET")
+				_ = runCmd.Flags().Set("body", "")
+				_ = runCmd.Flags().Set("duration", "0s")
+				runCmd.Flags().Lookup("duration").Changed = false
+			}()
+
+			err := rootCmd.Execute()
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			if receivedMethod != method {
+				t.Errorf("expected server to receive %s, got %s", method, receivedMethod)
+			}
+
+			output := out.String()
+			if !strings.Contains(output, "Requests:   1 total (1 succeeded, 0 failed)") {
+				t.Errorf("expected successful request output, got: %s", output)
+			}
+		})
+	}
+}
+
+func TestRunCommand_InvalidMethod(t *testing.T) {
+	var out bytes.Buffer
+	rootCmd.SetOut(&out)
+	rootCmd.SetErr(&out)
+	rootCmd.SetArgs([]string{"run", "http://example.com", "-n", "1", "-m", "PATCH"})
+
+	defer func() {
+		_ = runCmd.Flags().Set("requests", "1")
+		_ = runCmd.Flags().Set("concurrency", "1")
+		_ = runCmd.Flags().Set("timeout", "10s")
+		_ = runCmd.Flags().Set("method", "GET")
+		_ = runCmd.Flags().Set("body", "")
+		_ = runCmd.Flags().Set("duration", "0s")
+		runCmd.Flags().Lookup("duration").Changed = false
+	}()
+
+	err := rootCmd.Execute()
+	if err == nil {
+		t.Fatal("expected error for invalid method, got nil")
+	}
+
+	if !strings.Contains(err.Error(), "supported methods: GET, POST, PUT, DELETE") {
+		t.Errorf("expected error to list supported methods, got: %v", err)
+	}
+}
+
+func TestRunCommand_MethodWithBody(t *testing.T) {
+	expectedBody := `{"key":"value"}`
+	var receivedMethod string
+	var receivedBody string
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		receivedMethod = r.Method
+		body, _ := io.ReadAll(r.Body)
+		receivedBody = string(body)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	var out bytes.Buffer
+	rootCmd.SetOut(&out)
+	rootCmd.SetArgs([]string{"run", server.URL, "-n", "1", "-m", "POST", "-b", expectedBody})
+
+	defer func() {
+		_ = runCmd.Flags().Set("requests", "1")
+		_ = runCmd.Flags().Set("concurrency", "1")
+		_ = runCmd.Flags().Set("timeout", "10s")
+		_ = runCmd.Flags().Set("method", "GET")
+		_ = runCmd.Flags().Set("body", "")
+		_ = runCmd.Flags().Set("duration", "0s")
+		runCmd.Flags().Lookup("duration").Changed = false
+	}()
+
+	err := rootCmd.Execute()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if receivedMethod != "POST" {
+		t.Errorf("expected POST, got %s", receivedMethod)
+	}
+	if receivedBody != expectedBody {
+		t.Errorf("expected body %q, got %q", expectedBody, receivedBody)
+	}
 }
