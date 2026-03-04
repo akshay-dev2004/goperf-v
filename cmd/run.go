@@ -68,6 +68,16 @@ func validateMethod(method string) error {
 	return nil
 }
 
+func validateHeaders(headers []string) error {
+	for _, h := range headers {
+		parts := strings.SplitN(h, ":", 2)
+		if len(parts) != 2 || strings.TrimSpace(parts[0]) == "" {
+			return fmt.Errorf("invalid header format %q, expected 'Key: Value'", h)
+		}
+	}
+	return nil
+}
+
 var runCmd = &cobra.Command{
 	Use:   "run <url>",
 	Short: "Command to give input URL",
