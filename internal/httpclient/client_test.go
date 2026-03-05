@@ -20,7 +20,7 @@ func TestMakeRequestSuccess(t *testing.T) {
 	}))
 	defer server.Close()
 
-	status, duration, err := MakeRequest(context.Background(), server.URL, testTimeout, "GET", "")
+	status, duration, err := MakeRequest(context.Background(), server.URL, testTimeout, "GET", "", nil)
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -80,7 +80,7 @@ func TestMakeRequest_Errors(t *testing.T) {
 				targetURL = server.URL
 			}
 
-			_, _, err := MakeRequest(context.Background(), targetURL, tt.timeout, "GET", "")
+			_, _, err := MakeRequest(context.Background(), targetURL, tt.timeout, "GET", "", nil)
 
 			if err == nil {
 				t.Fatalf("expected error, got nil")
@@ -109,7 +109,7 @@ func TestRunMultipleConcurrent_UsesConcurrency(t *testing.T) {
 	timeout := 2 * time.Second
 
 	start := time.Now()
-	recorder := RunMultipleConcurrent(context.Background(), server.URL, n, concurrency, timeout, "GET", "")
+	recorder := RunMultipleConcurrent(context.Background(), server.URL, n, concurrency, timeout, "GET", "", nil)
 
 	if recorder == nil {
 		t.Fatal("expected non-nil recorder returned")
@@ -137,7 +137,7 @@ func TestRunForDuration_ReturnsHistogram(t *testing.T) {
 	timeout := 2 * time.Second
 
 	start := time.Now()
-	recorder := RunForDuration(context.Background(), server.URL, concurrency, timeout, duration, "GET", "")
+	recorder := RunForDuration(context.Background(), server.URL, concurrency, timeout, duration, "GET", "", nil)
 	elapsed := time.Since(start)
 
 	if recorder == nil {
@@ -174,7 +174,7 @@ func TestRunForDuration_RespectsContext(t *testing.T) {
 	}()
 
 	start := time.Now()
-	recorder := RunForDuration(ctx, server.URL, 2, 2*time.Second, 5*time.Second, "GET", "")
+	recorder := RunForDuration(ctx, server.URL, 2, 2*time.Second, 5*time.Second, "GET", "", nil)
 	elapsed := time.Since(start)
 
 	if recorder == nil {
@@ -207,7 +207,7 @@ func TestMakeRequest_Methods(t *testing.T) {
 			}))
 			defer server.Close()
 
-			status, _, err := MakeRequest(context.Background(), server.URL, testTimeout, tt.method, "")
+			status, _, err := MakeRequest(context.Background(), server.URL, testTimeout, tt.method, "", nil)
 			if err != nil {
 				t.Fatalf("expected no error, got %v", err)
 			}
@@ -232,7 +232,7 @@ func TestMakeRequestWithBody(t *testing.T) {
 	}))
 	defer server.Close()
 
-	status, _, err := MakeRequest(context.Background(), server.URL, testTimeout, "POST", expectedBody)
+	status, _, err := MakeRequest(context.Background(), server.URL, testTimeout, "POST", expectedBody, nil)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -254,11 +254,79 @@ func TestMakeRequestGetNoBody(t *testing.T) {
 	}))
 	defer server.Close()
 
-	status, _, err := MakeRequest(context.Background(), server.URL, testTimeout, "GET", "")
+	status, _, err := MakeRequest(context.Background(), server.URL, testTimeout, "GET", "", nil)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 	if status != http.StatusOK {
 		t.Fatalf("expected status 200, got %d", status)
+	}
+}
+
+func TestMakeRequestWithHeaders(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer test-token" {
+			t.Errorf("expected Authorization header 'Bearer test-token', got %q", r.Header.Get("Authorization"))
+		}
+		if r.Header.Get("X-Custom") != "my-value" {
+			t.Errorf("expected X-Custom header 'my-value', got %q", r.Header.Get("X-Custom"))
+		}
+
+		acceptHeaders := r.Header.Values("Accept")
+		if len(acceptHeaders) != 2 || acceptHeaders[0] != "text/plain" || acceptHeaders[1] != "application/json" {
+			t.Errorf("expected Accept header to have values ['text/plain', 'application/json'], got %v", acceptHeaders)
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	status, _, err := MakeRequest(context.Background(), server.URL, testTimeout, "GET", "", []string{
+		"Authorization: Bearer test-token",
+		"X-Custom: my-value",
+		"Accept: text/plain",
+		"Accept: application/json",
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if status != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", status)
+	}
+}
+
+func TestRunMultipleConcurrent_WithHeaders(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("X-Test") != "hello" {
+			t.Errorf("expected X-Test header 'hello', got %q", r.Header.Get("X-Test"))
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	recorder := RunMultipleConcurrent(context.Background(), server.URL, 3, 2, testTimeout, "GET", "", []string{"X-Test: hello"})
+	if recorder == nil {
+		t.Fatal("expected non-nil recorder")
+	}
+	if recorder.Count() != 3 {
+		t.Errorf("expected 3 successful requests, got %d", recorder.Count())
+	}
+}
+
+func TestRunForDuration_WithHeaders(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("X-Duration-Test") != "yes" {
+			t.Errorf("expected X-Duration-Test header 'yes', got %q", r.Header.Get("X-Duration-Test"))
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	recorder := RunForDuration(context.Background(), server.URL, 2, testTimeout, 500*time.Millisecond, "GET", "", []string{"X-Duration-Test: yes"})
+	if recorder == nil {
+		t.Fatal("expected non-nil recorder")
+	}
+	if recorder.Count() == 0 {
+		t.Error("expected at least one recorded request")
 	}
 }

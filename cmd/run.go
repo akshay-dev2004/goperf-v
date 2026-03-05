@@ -68,6 +68,16 @@ func validateMethod(method string) error {
 	return nil
 }
 
+func validateHeaders(headers []string) error {
+	for _, h := range headers {
+		parts := strings.SplitN(h, ":", 2)
+		if len(parts) != 2 || strings.TrimSpace(parts[0]) == "" || strings.Contains(strings.TrimSpace(parts[0]), " ") {
+			return fmt.Errorf("invalid header format %q, expected 'Key: Value' without spaces in the key", h)
+		}
+	}
+	return nil
+}
+
 var runCmd = &cobra.Command{
 	Use:   "run <url>",
 	Short: "Command to give input URL",
@@ -86,6 +96,7 @@ var runCmd = &cobra.Command{
 		duration, _ := f.GetDuration("duration")
 		method, _ := f.GetString("method")
 		body, _ := f.GetString("body")
+		headers, _ := f.GetStringArray("header")
 		method = strings.ToUpper(method)
 
 		if err := validateConcurrency(concurrency); err != nil {
@@ -100,6 +111,9 @@ var runCmd = &cobra.Command{
 		if err := validateMethod(method); err != nil {
 			return err
 		}
+		if err := validateHeaders(headers); err != nil {
+			return err
+		}
 
 		u, err := validateTarget(args[0])
 		if err != nil {
@@ -112,7 +126,7 @@ var runCmd = &cobra.Command{
 
 		if duration > 0 {
 			fmt.Fprintf(cmd.OutOrStdout(), "Running for %v against %s with concurrency %d\n", duration, u, concurrency)
-			return runCommandDuration(args[0], concurrency, timeout, duration, method, body, cmd.OutOrStdout())
+			return runCommandDuration(args[0], concurrency, timeout, duration, method, body, headers, cmd.OutOrStdout())
 		}
 
 		if err := validateRequests(requests); err != nil {
@@ -122,27 +136,27 @@ var runCmd = &cobra.Command{
 		fmt.Println("Parsed URL:", u)
 		fmt.Printf("Making %d requests to %s with concurrency %d\n", requests, u, concurrency)
 
-		return runCommandMultipleConcurrent(args[0], requests, concurrency, timeout, method, body, cmd.OutOrStdout())
+		return runCommandMultipleConcurrent(args[0], requests, concurrency, timeout, method, body, headers, cmd.OutOrStdout())
 	},
 }
 
-func runCommandDuration(target string, concurrency int, timeout time.Duration, duration time.Duration, method string, body string, out io.Writer) error {
+func runCommandDuration(target string, concurrency int, timeout time.Duration, duration time.Duration, method string, body string, headers []string, out io.Writer) error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 
 	start := time.Now()
-	recorder := httpclient.RunForDuration(ctx, target, concurrency, timeout, duration, method, body)
+	recorder := httpclient.RunForDuration(ctx, target, concurrency, timeout, duration, method, body, headers)
 	elapsed := time.Since(start)
 
 	return printHistogramStatistics(out, recorder, target, elapsed)
 }
 
-func runCommandMultipleConcurrent(target string, n int, concurrency int, timeout time.Duration, method string, body string, out io.Writer) error {
+func runCommandMultipleConcurrent(target string, n int, concurrency int, timeout time.Duration, method string, body string, headers []string, out io.Writer) error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 
 	start := time.Now()
-	recorder := httpclient.RunMultipleConcurrent(ctx, target, n, concurrency, timeout, method, body)
+	recorder := httpclient.RunMultipleConcurrent(ctx, target, n, concurrency, timeout, method, body, headers)
 	elapsed := time.Since(start)
 
 	if err := printHistogramStatistics(out, recorder, target, elapsed); err != nil {
@@ -214,5 +228,6 @@ func init() {
 	runCmd.Flags().DurationP("duration", "d", 0, "Duration to run the test (e.g., 10s, 1m)")
 	runCmd.Flags().StringP("method", "m", "GET", "HTTP method to use")
 	runCmd.Flags().StringP("body", "b", "", "Request body content")
+	runCmd.Flags().StringArrayP("header", "H", []string{}, "HTTP header in 'Key: Value' format (can be repeated)")
 	rootCmd.AddCommand(runCmd)
 }

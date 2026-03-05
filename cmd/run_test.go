@@ -333,3 +333,58 @@ func TestBodyFlagDefaultValue(t *testing.T) {
 		t.Errorf("Expected default body to be empty string, got %q", body)
 	}
 }
+
+func TestValidateHeaders(t *testing.T) {
+	tests := []struct {
+		name    string
+		headers []string
+		wantErr bool
+	}{
+		{"Valid: single header", []string{"Content-Type: application/json"}, false},
+		{"Valid: multiple headers", []string{"Authorization: Bearer token", "Accept: text/html"}, false},
+		{"Valid: header with multiple colons", []string{"X-Custom: value:with:colons"}, false},
+		{"Valid: empty list", []string{}, false},
+		{"Invalid: missing colon", []string{"InvalidHeader"}, true},
+		{"Invalid: empty key", []string{": value"}, true},
+		{"Invalid: only colon", []string{":"}, true},
+		{"Invalid: space in key", []string{"Invalid Key: value"}, true},
+		{"Invalid: space in key with padding", []string{"  Invalid Key  : value"}, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateHeaders(tt.headers)
+			if tt.wantErr {
+				if err == nil {
+					t.Errorf("Expected error but got none for headers %v", tt.headers)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Unexpected error for headers %v: %v", tt.headers, err)
+				}
+			}
+		})
+	}
+}
+
+func TestHeaderFlagExists(t *testing.T) {
+	cmd := runCmd
+	flag := cmd.Flags().Lookup("header")
+	if flag == nil {
+		t.Fatal("Expected --header flag to exist")
+	}
+	if flag.Shorthand != "H" {
+		t.Errorf("Expected shorthand -H, got -%s", flag.Shorthand)
+	}
+}
+
+func TestHeaderFlagDefaultValue(t *testing.T) {
+	cmd := runCmd
+	headers, err := cmd.Flags().GetStringArray("header")
+	if err != nil {
+		t.Fatalf("Error getting header flag: %v", err)
+	}
+	if len(headers) != 0 {
+		t.Errorf("Expected default headers to be empty, got %v", headers)
+	}
+}
