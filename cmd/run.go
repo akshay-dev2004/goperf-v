@@ -144,8 +144,18 @@ func runCommandDuration(target string, concurrency int, timeout time.Duration, d
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 
+	cfg := httpclient.Config{
+		Target:      target,
+		Concurrency: concurrency,
+		Timeout:     timeout,
+		Duration:    duration,
+		Method:      method,
+		Body:        body,
+		Headers:     headers,
+	}
+
 	start := time.Now()
-	recorder := httpclient.RunForDuration(ctx, target, concurrency, timeout, duration, method, body, headers)
+	recorder := httpclient.RunForDuration(ctx, cfg)
 	elapsed := time.Since(start)
 
 	return printHistogramStatistics(out, recorder, target, elapsed)
@@ -155,8 +165,18 @@ func runCommandMultipleConcurrent(target string, n int, concurrency int, timeout
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 
+	cfg := httpclient.Config{
+		Target:      target,
+		Requests:    n,
+		Concurrency: concurrency,
+		Timeout:     timeout,
+		Method:      method,
+		Body:        body,
+		Headers:     headers,
+	}
+
 	start := time.Now()
-	recorder := httpclient.RunMultipleConcurrent(ctx, target, n, concurrency, timeout, method, body, headers)
+	recorder := httpclient.RunMultipleConcurrent(ctx, cfg)
 	elapsed := time.Since(start)
 
 	if err := printHistogramStatistics(out, recorder, target, elapsed); err != nil {
