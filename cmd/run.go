@@ -80,7 +80,7 @@ func validateHeaders(headers []string) error {
 
 var runCmd = &cobra.Command{
 	Use:   "run <url>",
-	Short: "Command to give input URL",
+	Short: "Run a load test against an HTTP endpoint",
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) == 0 {
 			return fmt.Errorf("missing required argument: URL")
