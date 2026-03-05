@@ -271,6 +271,12 @@ func TestMakeRequestWithHeaders(t *testing.T) {
 		if r.Header.Get("X-Custom") != "my-value" {
 			t.Errorf("expected X-Custom header 'my-value', got %q", r.Header.Get("X-Custom"))
 		}
+
+		acceptHeaders := r.Header.Values("Accept")
+		if len(acceptHeaders) != 2 || acceptHeaders[0] != "text/plain" || acceptHeaders[1] != "application/json" {
+			t.Errorf("expected Accept header to have values ['text/plain', 'application/json'], got %v", acceptHeaders)
+		}
+
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer server.Close()
@@ -278,6 +284,8 @@ func TestMakeRequestWithHeaders(t *testing.T) {
 	status, _, err := MakeRequest(context.Background(), server.URL, testTimeout, "GET", "", []string{
 		"Authorization: Bearer test-token",
 		"X-Custom: my-value",
+		"Accept: text/plain",
+		"Accept: application/json",
 	})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
