@@ -15,13 +15,28 @@ import (
 
 const testTimeout = 2 * time.Second
 
+func TestNewHTTPClient(t *testing.T) {
+	client := NewHTTPClient(50)
+
+	tr, ok := client.Transport.(*http.Transport)
+	if !ok {
+		t.Fatal("expected *http.Transport")
+	}
+	if tr.MaxIdleConnsPerHost != 50 {
+		t.Errorf("expected MaxIdleConnsPerHost=50, got %d", tr.MaxIdleConnsPerHost)
+	}
+	if !tr.DisableCompression {
+		t.Error("expected DisableCompression=true")
+	}
+}
+
 func TestMakeRequestSuccess(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer server.Close()
 
-	status, duration, err := MakeRequest(context.Background(), Config{
+	status, duration, err := MakeRequest(context.Background(), &http.Client{}, Config{
 		Target:  server.URL,
 		Timeout: testTimeout,
 		Method:  "GET",
@@ -85,7 +100,7 @@ func TestMakeRequest_Errors(t *testing.T) {
 				targetURL = server.URL
 			}
 
-			_, _, err := MakeRequest(context.Background(), Config{
+			_, _, err := MakeRequest(context.Background(), &http.Client{}, Config{
 				Target:  targetURL,
 				Timeout: tt.timeout,
 				Method:  "GET",
@@ -237,7 +252,7 @@ func TestMakeRequest_Methods(t *testing.T) {
 			}))
 			defer server.Close()
 
-			status, _, err := MakeRequest(context.Background(), Config{
+			status, _, err := MakeRequest(context.Background(), &http.Client{}, Config{
 				Target:  server.URL,
 				Timeout: testTimeout,
 				Method:  tt.method,
@@ -266,7 +281,7 @@ func TestMakeRequestWithBody(t *testing.T) {
 	}))
 	defer server.Close()
 
-	status, _, err := MakeRequest(context.Background(), Config{
+	status, _, err := MakeRequest(context.Background(), &http.Client{}, Config{
 		Target:  server.URL,
 		Timeout: testTimeout,
 		Method:  "POST",
@@ -293,7 +308,7 @@ func TestMakeRequestGetNoBody(t *testing.T) {
 	}))
 	defer server.Close()
 
-	status, _, err := MakeRequest(context.Background(), Config{
+	status, _, err := MakeRequest(context.Background(), &http.Client{}, Config{
 		Target:  server.URL,
 		Timeout: testTimeout,
 		Method:  "GET",
@@ -324,7 +339,7 @@ func TestMakeRequestWithHeaders(t *testing.T) {
 	}))
 	defer server.Close()
 
-	status, _, err := MakeRequest(context.Background(), Config{
+	status, _, err := MakeRequest(context.Background(), &http.Client{}, Config{
 		Target:  server.URL,
 		Timeout: testTimeout,
 		Method:  "GET",
