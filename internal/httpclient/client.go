@@ -14,6 +14,15 @@ import (
 	"github.com/infraspecdev/goperf/internal/stats"
 )
 
+func NewHTTPClient(concurrency int) *http.Client {
+	return &http.Client{
+		Transport: &http.Transport{
+			MaxIdleConnsPerHost: concurrency,
+			DisableCompression:  true,
+		},
+	}
+}
+
 type Config struct {
 	Target      string
 	Requests    int
@@ -25,9 +34,7 @@ type Config struct {
 	Headers     []string
 }
 
-var client = &http.Client{}
-
-func MakeRequest(ctx context.Context, cfg Config) (statusCode int, duration time.Duration, err error) {
+func MakeRequest(ctx context.Context, client *http.Client, cfg Config) (statusCode int, duration time.Duration, err error) {
 	reqCtx, cancel := context.WithTimeout(ctx, cfg.Timeout)
 	defer cancel()
 
@@ -90,6 +97,7 @@ func isContextCancellation(err error) bool {
 }
 
 func RunMultipleConcurrent(ctx context.Context, cfg Config) *stats.HistogramRecorder {
+	client := NewHTTPClient(cfg.Concurrency)
 	jobs := make(chan int, cfg.Concurrency)
 	recorder := stats.NewHistogramRecorder(cfg.Timeout)
 
@@ -103,10 +111,14 @@ func RunMultipleConcurrent(ctx context.Context, cfg Config) *stats.HistogramReco
 				if ctx.Err() != nil {
 					continue
 				}
-				_, duration, err := MakeRequest(ctx, cfg)
-				if err == nil {
+				statusCode, duration, err := MakeRequest(ctx, client, cfg)
+				if err != nil {
+					if !isContextCancellation(err) {
+						recorder.RecordFailure()
+					}
+				} else if statusCode >= 200 && statusCode < 300 {
 					recorder.Record(duration)
-				} else if !isContextCancellation(err) {
+				} else {
 					recorder.RecordFailure()
 				}
 			}
@@ -126,6 +138,7 @@ func RunMultipleConcurrent(ctx context.Context, cfg Config) *stats.HistogramReco
 }
 
 func RunForDuration(ctx context.Context, cfg Config) *stats.HistogramRecorder {
+	client := NewHTTPClient(cfg.Concurrency)
 	recorder := stats.NewHistogramRecorder(cfg.Timeout)
 
 	reqCtx, cancel := context.WithTimeout(ctx, cfg.Duration)
@@ -141,10 +154,14 @@ func RunForDuration(ctx context.Context, cfg Config) *stats.HistogramRecorder {
 				if reqCtx.Err() != nil {
 					return
 				}
-				_, d, err := MakeRequest(reqCtx, cfg)
-				if err == nil {
+				statusCode, d, err := MakeRequest(reqCtx, client, cfg)
+				if err != nil {
+					if !isContextCancellation(err) {
+						recorder.RecordFailure()
+					}
+				} else if statusCode >= 200 && statusCode < 300 {
 					recorder.Record(d)
-				} else if !isContextCancellation(err) {
+				} else {
 					recorder.RecordFailure()
 				}
 			}

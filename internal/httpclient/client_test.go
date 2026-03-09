@@ -8,11 +8,27 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 )
 
 const testTimeout = 2 * time.Second
+
+func TestNewHTTPClient(t *testing.T) {
+	client := NewHTTPClient(50)
+
+	tr, ok := client.Transport.(*http.Transport)
+	if !ok {
+		t.Fatal("expected *http.Transport")
+	}
+	if tr.MaxIdleConnsPerHost != 50 {
+		t.Errorf("expected MaxIdleConnsPerHost=50, got %d", tr.MaxIdleConnsPerHost)
+	}
+	if !tr.DisableCompression {
+		t.Error("expected DisableCompression=true")
+	}
+}
 
 func TestMakeRequestSuccess(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -20,7 +36,7 @@ func TestMakeRequestSuccess(t *testing.T) {
 	}))
 	defer server.Close()
 
-	status, duration, err := MakeRequest(context.Background(), Config{
+	status, duration, err := MakeRequest(context.Background(), &http.Client{}, Config{
 		Target:  server.URL,
 		Timeout: testTimeout,
 		Method:  "GET",
@@ -84,7 +100,7 @@ func TestMakeRequest_Errors(t *testing.T) {
 				targetURL = server.URL
 			}
 
-			_, _, err := MakeRequest(context.Background(), Config{
+			_, _, err := MakeRequest(context.Background(), &http.Client{}, Config{
 				Target:  targetURL,
 				Timeout: tt.timeout,
 				Method:  "GET",
@@ -236,7 +252,7 @@ func TestMakeRequest_Methods(t *testing.T) {
 			}))
 			defer server.Close()
 
-			status, _, err := MakeRequest(context.Background(), Config{
+			status, _, err := MakeRequest(context.Background(), &http.Client{}, Config{
 				Target:  server.URL,
 				Timeout: testTimeout,
 				Method:  tt.method,
@@ -265,7 +281,7 @@ func TestMakeRequestWithBody(t *testing.T) {
 	}))
 	defer server.Close()
 
-	status, _, err := MakeRequest(context.Background(), Config{
+	status, _, err := MakeRequest(context.Background(), &http.Client{}, Config{
 		Target:  server.URL,
 		Timeout: testTimeout,
 		Method:  "POST",
@@ -292,7 +308,7 @@ func TestMakeRequestGetNoBody(t *testing.T) {
 	}))
 	defer server.Close()
 
-	status, _, err := MakeRequest(context.Background(), Config{
+	status, _, err := MakeRequest(context.Background(), &http.Client{}, Config{
 		Target:  server.URL,
 		Timeout: testTimeout,
 		Method:  "GET",
@@ -323,7 +339,7 @@ func TestMakeRequestWithHeaders(t *testing.T) {
 	}))
 	defer server.Close()
 
-	status, _, err := MakeRequest(context.Background(), Config{
+	status, _, err := MakeRequest(context.Background(), &http.Client{}, Config{
 		Target:  server.URL,
 		Timeout: testTimeout,
 		Method:  "GET",
@@ -391,5 +407,86 @@ func TestRunForDuration_WithHeaders(t *testing.T) {
 	}
 	if recorder.Count() == 0 {
 		t.Error("expected at least one recorded request")
+	}
+}
+
+func TestRunForDuration_ServerErrors(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer server.Close()
+
+	cfg := Config{
+		Target:      server.URL,
+		Concurrency: 2,
+		Timeout:     testTimeout,
+		Duration:    500 * time.Millisecond,
+		Method:      "GET",
+	}
+	recorder := RunForDuration(context.Background(), cfg)
+
+	if recorder.Count() != 0 {
+		t.Errorf("expected 0 successful requests, got %d", recorder.Count())
+	}
+	if recorder.FailedCount() == 0 {
+		t.Error("expected at least one failed request")
+	}
+	if recorder.TotalRequests() != recorder.FailedCount() {
+		t.Errorf("expected all requests to be failures: total=%d, failed=%d", recorder.TotalRequests(), recorder.FailedCount())
+	}
+}
+
+func TestRunMultipleConcurrent_MixedStatusCodes(t *testing.T) {
+	var reqCount int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		count := atomic.AddInt32(&reqCount, 1)
+		if count%2 == 0 {
+			w.WriteHeader(http.StatusInternalServerError)
+		} else {
+			w.WriteHeader(http.StatusOK)
+		}
+	}))
+	defer server.Close()
+
+	cfg := Config{
+		Target:      server.URL,
+		Requests:    4,
+		Concurrency: 1,
+		Timeout:     testTimeout,
+		Method:      "GET",
+	}
+	recorder := RunMultipleConcurrent(context.Background(), cfg)
+
+	if recorder.Count() != 2 {
+		t.Errorf("expected 2 successful requests, got %d", recorder.Count())
+	}
+	if recorder.FailedCount() != 2 {
+		t.Errorf("expected 2 failed requests, got %d", recorder.FailedCount())
+	}
+	if recorder.TotalRequests() != 4 {
+		t.Errorf("expected 4 total requests, got %d", recorder.TotalRequests())
+	}
+}
+
+func TestRunMultipleConcurrent_NonServerErrorCodes(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusTooManyRequests)
+	}))
+	defer server.Close()
+
+	cfg := Config{
+		Target:      server.URL,
+		Requests:    3,
+		Concurrency: 1,
+		Timeout:     testTimeout,
+		Method:      "GET",
+	}
+	recorder := RunMultipleConcurrent(context.Background(), cfg)
+
+	if recorder.Count() != 0 {
+		t.Errorf("expected 0 successful requests for 429 responses, got %d", recorder.Count())
+	}
+	if recorder.FailedCount() != 3 {
+		t.Errorf("expected 3 failed requests for 429 responses, got %d", recorder.FailedCount())
 	}
 }
