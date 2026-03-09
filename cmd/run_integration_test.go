@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -37,6 +38,11 @@ func TestRunCommand_RequestCountMode(t *testing.T) {
 	}
 
 	output := out.String()
+	expectedIntro := fmt.Sprintf("Making %s requests to %s with concurrency %s\n", requests, server.URL, concurrency)
+	if !strings.Contains(output, expectedIntro) {
+		t.Errorf("Expected intro %q, got: %s", expectedIntro, output)
+	}
+
 	if !strings.Contains(output, "Requests:   3 total (3 succeeded, 0 failed)") {
 		t.Errorf("Expected 'Requests:   3 total (3 succeeded, 0 failed)', got: %s", output)
 	}

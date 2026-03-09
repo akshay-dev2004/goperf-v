@@ -133,8 +133,7 @@ var runCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Println("Parsed URL:", u)
-		fmt.Printf("Making %d requests to %s with concurrency %d\n", requests, u, concurrency)
+		fmt.Fprintf(cmd.OutOrStdout(), "Making %d requests to %v with concurrency %d\n", requests, u, concurrency)
 
 		return runCommandMultipleConcurrent(args[0], requests, concurrency, timeout, method, body, headers, cmd.OutOrStdout())
 	},
