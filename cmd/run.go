@@ -4,10 +4,8 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"net/url"
 	"os"
 	"os/signal"
-	"sort"
 	"strings"
 	"time"
 
@@ -15,77 +13,6 @@ import (
 	"github.com/infraspecdev/goperf/internal/stats"
 	"github.com/spf13/cobra"
 )
-
-func validateTarget(input string) (*url.URL, error) {
-	u, err := url.ParseRequestURI(input)
-	if err != nil {
-		return nil, fmt.Errorf("parse error: %w", err)
-	}
-	if u.Scheme == "" || u.Host == "" {
-		return nil, fmt.Errorf("invalid URL: missing scheme or host")
-	}
-	return u, nil
-}
-
-func validateRequests(n int) error {
-	if n <= 0 {
-		return fmt.Errorf("number of requests must be positive, got %d", n)
-	}
-	return nil
-}
-
-func validateTimeout(d time.Duration) error {
-	if d <= 0 {
-		return fmt.Errorf("timeout must be positive, got %v", d)
-	}
-	return nil
-}
-
-func validateConcurrency(c int) error {
-	if c <= 0 {
-		return fmt.Errorf("concurrency must be positive, got %d", c)
-	}
-	return nil
-}
-
-func validateDuration(d time.Duration) error {
-	if d < 0 {
-		return fmt.Errorf("duration must not be negative, got %v", d)
-	}
-	return nil
-}
-
-var validMethods = map[string]bool{
-	"GET":     true,
-	"POST":    true,
-	"PUT":     true,
-	"DELETE":  true,
-	"PATCH":   true,
-	"OPTIONS": true,
-	"HEAD":    true,
-}
-
-func validateMethod(method string) error {
-	if !validMethods[method] {
-		methods := make([]string, 0, len(validMethods))
-		for m := range validMethods {
-			methods = append(methods, m)
-		}
-		sort.Strings(methods)
-		return fmt.Errorf("invalid HTTP method %q, supported methods: %s", method, strings.Join(methods, ", "))
-	}
-	return nil
-}
-
-func validateHeaders(headers []string) error {
-	for _, h := range headers {
-		parts := strings.SplitN(h, ":", 2)
-		if len(parts) != 2 || strings.TrimSpace(parts[0]) == "" || strings.Contains(strings.TrimSpace(parts[0]), " ") {
-			return fmt.Errorf("invalid header format %q, expected 'Key: Value' without spaces in the key", h)
-		}
-	}
-	return nil
-}
 
 var runCmd = &cobra.Command{
 	Use:   "run <url>",
@@ -108,43 +35,35 @@ var runCmd = &cobra.Command{
 		headers, _ := f.GetStringArray("header")
 		method = strings.ToUpper(method)
 
-		if err := validateConcurrency(concurrency); err != nil {
-			return err
-		}
-		if err := validateTimeout(timeout); err != nil {
-			return err
-		}
-		if err := validateDuration(duration); err != nil {
-			return err
-		}
-		if err := validateMethod(method); err != nil {
-			return err
-		}
-		if err := validateHeaders(headers); err != nil {
-			return err
+		config := RunConfig{
+			Target:      args[0],
+			Requests:    requests,
+			Concurrency: concurrency,
+			Timeout:     timeout,
+			Duration:    duration,
+			Method:      method,
+			Body:        body,
+			Headers:     headers,
 		}
 
-		u, err := validateTarget(args[0])
+		err := config.Validate()
 		if err != nil {
 			return err
 		}
 
-		if f.Changed("requests") && f.Changed("duration") {
-			return fmt.Errorf("cannot use both --requests (-n) and --duration (-d) at the same time")
-		}
-
-		if duration > 0 {
-			fmt.Fprintf(cmd.OutOrStdout(), "Running for %v against %s with concurrency %d\n", duration, u, concurrency)
-			return runCommandDuration(args[0], concurrency, timeout, duration, method, body, headers, cmd.OutOrStdout())
-		}
-
-		if err := validateRequests(requests); err != nil {
+		u, err := config.ParseTarget()
+		if err != nil {
 			return err
 		}
 
-		fmt.Fprintf(cmd.OutOrStdout(), "Making %d requests to %v with concurrency %d\n", requests, u, concurrency)
+		if config.Duration > 0 {
+			fmt.Fprintf(cmd.OutOrStdout(), "Running for %v against %s with concurrency %d\n", config.Duration, u, config.Concurrency)
+			return runCommandDuration(args[0], config.Concurrency, config.Timeout, config.Duration, config.Method, config.Body, config.Headers, cmd.OutOrStdout())
+		}
 
-		return runCommandMultipleConcurrent(args[0], requests, concurrency, timeout, method, body, headers, cmd.OutOrStdout())
+		fmt.Fprintf(cmd.OutOrStdout(), "Making %d requests to %v with concurrency %d\n", config.Requests, u, config.Concurrency)
+
+		return runCommandMultipleConcurrent(args[0], config.Requests, config.Concurrency, config.Timeout, config.Method, config.Body, config.Headers, cmd.OutOrStdout())
 	},
 }
 
