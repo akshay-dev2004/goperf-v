@@ -292,7 +292,9 @@ func TestValidateMethod(t *testing.T) {
 		{"Valid: POST", "POST", false},
 		{"Valid: PUT", "PUT", false},
 		{"Valid: DELETE", "DELETE", false},
-		{"Invalid: PATCH", "PATCH", true},
+		{"Valid: PATCH", "PATCH", false},
+		{"Valid: OPTIONS", "OPTIONS", false},
+		{"Valid: HEAD", "HEAD", false},
 		{"Invalid: RANDOM", "INVALID", true},
 		{"Invalid: Empty", "", true},
 	}
@@ -303,7 +305,7 @@ func TestValidateMethod(t *testing.T) {
 			if tt.wantErr {
 				if err == nil {
 					t.Errorf("Expected error for method %q, but got none", tt.method)
-				} else if !strings.Contains(err.Error(), "supported methods: GET, POST, PUT, DELETE") {
+				} else if !strings.Contains(err.Error(), "supported methods: GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD") {
 					t.Errorf("Error message %q should contain supported methods list", err.Error())
 				}
 			} else {

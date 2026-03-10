@@ -182,7 +182,7 @@ func TestRunCommand_DurationMode(t *testing.T) {
 }
 
 func TestRunCommand_MethodFlag(t *testing.T) {
-	methods := []string{"GET", "POST", "PUT", "DELETE"}
+	methods := []string{"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"}
 
 	for _, method := range methods {
 		t.Run(method, func(t *testing.T) {
@@ -228,7 +228,7 @@ func TestRunCommand_InvalidMethod(t *testing.T) {
 	var out bytes.Buffer
 	rootCmd.SetOut(&out)
 	rootCmd.SetErr(&out)
-	rootCmd.SetArgs([]string{"run", "http://example.com", "-n", "1", "-m", "PATCH"})
+	rootCmd.SetArgs([]string{"run", "http://example.com", "-n", "1", "-m", "TRACE"})
 
 	defer func() {
 		_ = runCmd.Flags().Set("requests", "1")
@@ -245,7 +245,7 @@ func TestRunCommand_InvalidMethod(t *testing.T) {
 		t.Fatal("expected error for invalid method, got nil")
 	}
 
-	if !strings.Contains(err.Error(), "supported methods: GET, POST, PUT, DELETE") {
+	if !strings.Contains(err.Error(), "supported methods: GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD") {
 		t.Errorf("expected error to list supported methods, got: %v", err)
 	}
 }

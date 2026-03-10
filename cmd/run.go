@@ -55,15 +55,18 @@ func validateDuration(d time.Duration) error {
 }
 
 var validMethods = map[string]bool{
-	"GET":    true,
-	"POST":   true,
-	"PUT":    true,
-	"DELETE": true,
+	"GET":     true,
+	"POST":    true,
+	"PUT":     true,
+	"DELETE":  true,
+	"PATCH":   true,
+	"OPTIONS": true,
+	"HEAD":    true,
 }
 
 func validateMethod(method string) error {
 	if !validMethods[method] {
-		return fmt.Errorf("invalid HTTP method %q, supported methods: GET, POST, PUT, DELETE", method)
+		return fmt.Errorf("invalid HTTP method %q, supported methods: GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD", method)
 	}
 	return nil
 }
