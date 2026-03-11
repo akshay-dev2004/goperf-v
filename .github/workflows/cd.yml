@@ -68,6 +68,6 @@ jobs:
             dist/goperf-linux-amd64
             dist/goperf-windows-amd64.exe
             dist/goperf-darwin-amd64
-          generate_release_notes: false
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
