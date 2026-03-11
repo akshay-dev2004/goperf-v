@@ -41,8 +41,6 @@ var validMethods = map[string]bool{
 }
 
 func (c *RunConfig) Validate() error {
-	c.Method = strings.ToUpper(c.Method)
-
 	if c.Concurrency <= 0 {
 		return fmt.Errorf("concurrency must be positive, got %d", c.Concurrency)
 	}
