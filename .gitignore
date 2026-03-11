@@ -30,6 +30,3 @@ Thumbs.db
 # Build output
 /bin/
 /dist/
-
-# Node modules
-node_modules/
