@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/infraspecdev/goperf/internal/httpclient"
-	"github.com/infraspecdev/goperf/internal/stats"
 	"github.com/spf13/cobra"
 )
 
@@ -74,7 +73,7 @@ func runCommandDuration(cfg httpclient.Config, out io.Writer) error {
 	recorder := httpclient.RunForDuration(ctx, cfg)
 	elapsed := time.Since(start)
 
-	return printHistogramStatistics(out, recorder, cfg.Target, elapsed)
+	return newResult(recorder, cfg.Target, elapsed).WriteText(out)
 }
 
 func runCommandMultipleConcurrent(cfg httpclient.Config, out io.Writer) error {
@@ -85,62 +84,7 @@ func runCommandMultipleConcurrent(cfg httpclient.Config, out io.Writer) error {
 	recorder := httpclient.RunMultipleConcurrent(ctx, cfg)
 	elapsed := time.Since(start)
 
-	return printHistogramStatistics(out, recorder, cfg.Target, elapsed)
-}
-
-func printHistogramStatistics(out io.Writer, recorder *stats.HistogramRecorder, target string, elapsed time.Duration) error {
-	totalReqs := recorder.TotalRequests()
-	successReqs := recorder.Count()
-	failedReqs := recorder.FailedCount()
-
-	throughput := 0.0
-	if elapsed.Seconds() > 0 {
-		throughput = float64(totalReqs) / elapsed.Seconds()
-	}
-
-	if _, err := fmt.Fprintf(out, "\nTarget:     %s\n", target); err != nil {
-		return err
-	}
-	if _, err := fmt.Fprintf(out, "Duration:   %.1fs\n", elapsed.Seconds()); err != nil {
-		return err
-	}
-	if _, err := fmt.Fprintf(out, "Requests:   %d total (%d succeeded, %d failed)\n\n", totalReqs, successReqs, failedReqs); err != nil {
-		return err
-	}
-	if successReqs == 0 {
-		if _, err := fmt.Fprintf(out, "Throughput: %.1f requests/sec\n", throughput); err != nil {
-			return err
-		}
-		return nil
-	}
-
-	if _, err := fmt.Fprintf(out, "Latency:\n"); err != nil {
-		return err
-	}
-	if _, err := fmt.Fprintf(out, "  Fastest:  %dms\n", recorder.Min().Milliseconds()); err != nil {
-		return err
-	}
-	if _, err := fmt.Fprintf(out, "  Slowest:  %dms\n", recorder.Max().Milliseconds()); err != nil {
-		return err
-	}
-	if _, err := fmt.Fprintf(out, "  Average:  %dms\n", recorder.Avg().Milliseconds()); err != nil {
-		return err
-	}
-	if _, err := fmt.Fprintf(out, "  p50:      %dms\n", recorder.Percentile(50).Milliseconds()); err != nil {
-		return err
-	}
-	if _, err := fmt.Fprintf(out, "  p90:      %dms\n", recorder.Percentile(90).Milliseconds()); err != nil {
-		return err
-	}
-	if _, err := fmt.Fprintf(out, "  p99:      %dms\n\n", recorder.Percentile(99).Milliseconds()); err != nil {
-		return err
-	}
-
-	if _, err := fmt.Fprintf(out, "Throughput: %.1f requests/sec\n", throughput); err != nil {
-		return err
-	}
-
-	return nil
+	return newResult(recorder, cfg.Target, elapsed).WriteText(out)
 }
 
 func init() {
