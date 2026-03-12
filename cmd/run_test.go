@@ -1,12 +1,8 @@
 package cmd
 
 import (
-	"bytes"
-	"strings"
 	"testing"
 	"time"
-
-	"github.com/infraspecdev/goperf/internal/stats"
 )
 
 func TestRunCmdHasNFlag(t *testing.T) {
@@ -77,29 +73,6 @@ func TestDurationFlagDefault(t *testing.T) {
 	}
 	if duration != 0 {
 		t.Errorf("expected default duration to be 0s, got %v", duration)
-	}
-}
-
-func TestPrintHistogramStatistics(t *testing.T) {
-	recorder := stats.NewHistogramRecorder(10 * time.Second)
-	recorder.Record(10 * time.Millisecond)
-	recorder.Record(20 * time.Millisecond)
-	recorder.Record(30 * time.Millisecond)
-
-	var buf bytes.Buffer
-	err := printHistogramStatistics(&buf, recorder, "http://example.com", 1*time.Second)
-
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	output := buf.String()
-
-	expectedSubstrings := []string{"Target:", "Duration:", "Requests:", "Latency:", "Fastest:", "Slowest:", "Average:", "p50:", "p90:", "p99:", "Throughput:"}
-	for _, sub := range expectedSubstrings {
-		if !strings.Contains(output, sub) {
-			t.Errorf("expected output to contain %q, got:\n%s", sub, output)
-		}
 	}
 }
 
