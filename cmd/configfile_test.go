@@ -29,7 +29,7 @@ func TestLoadConfig_ValidJSON_AllFields(t *testing.T) {
 	}`
 	path := writeTempFile(t, "config.json", content)
 
-	cfg, err := LoadConfig(path)
+	cfg, err := loadConfig(path)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -67,7 +67,7 @@ func TestLoadConfig_ValidJSON_PartialFields(t *testing.T) {
 	content := `{"target": "https://example.com", "requests": 50}`
 	path := writeTempFile(t, "partial.json", content)
 
-	cfg, err := LoadConfig(path)
+	cfg, err := loadConfig(path)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -92,14 +92,14 @@ func TestLoadConfig_ValidJSON_PartialFields(t *testing.T) {
 func TestLoadConfig_MalformedJSON(t *testing.T) {
 	path := writeTempFile(t, "bad.json", `{invalid json}`)
 
-	_, err := LoadConfig(path)
+	_, err := loadConfig(path)
 	if err == nil {
 		t.Fatal("expected error for malformed JSON, got nil")
 	}
 }
 
 func TestLoadConfig_FileNotFound(t *testing.T) {
-	_, err := LoadConfig("/nonexistent/path/config.json")
+	_, err := loadConfig("/nonexistent/path/config.json")
 	if err == nil {
 		t.Fatal("expected error for missing file, got nil")
 	}
@@ -108,7 +108,7 @@ func TestLoadConfig_FileNotFound(t *testing.T) {
 func TestLoadConfig_UnsupportedExtension(t *testing.T) {
 	path := writeTempFile(t, "config.txt", `{"target": "https://example.com"}`)
 
-	_, err := LoadConfig(path)
+	_, err := loadConfig(path)
 	if err == nil {
 		t.Fatal("expected error for unsupported extension, got nil")
 	}
@@ -117,7 +117,7 @@ func TestLoadConfig_UnsupportedExtension(t *testing.T) {
 func TestLoadConfig_EmptyFile(t *testing.T) {
 	path := writeTempFile(t, "empty.json", "")
 
-	cfg, err := LoadConfig(path)
+	cfg, err := loadConfig(path)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -140,7 +140,7 @@ headers:
 `
 	path := writeTempFile(t, "config.yaml", content)
 
-	cfg, err := LoadConfig(path)
+	cfg, err := loadConfig(path)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -177,7 +177,7 @@ requests: 50
 `
 	path := writeTempFile(t, "partial.yaml", content)
 
-	cfg, err := LoadConfig(path)
+	cfg, err := loadConfig(path)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -196,7 +196,7 @@ requests: 50
 func TestLoadConfig_MalformedYAML(t *testing.T) {
 	path := writeTempFile(t, "bad.yaml", ":\n  :\n    - :\n  invalid: [")
 
-	_, err := LoadConfig(path)
+	_, err := loadConfig(path)
 	if err == nil {
 		t.Fatal("expected error for malformed YAML, got nil")
 	}
@@ -208,7 +208,7 @@ requests: 25
 `
 	path := writeTempFile(t, "config.yml", content)
 
-	cfg, err := LoadConfig(path)
+	cfg, err := loadConfig(path)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -225,7 +225,7 @@ func TestLoadConfig_CaseInsensitiveExtension(t *testing.T) {
 	content := `{"target": "https://example.com"}`
 	path := writeTempFile(t, "config.JSON", content)
 
-	cfg, err := LoadConfig(path)
+	cfg, err := loadConfig(path)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -238,7 +238,7 @@ func TestLoadConfig_CaseInsensitiveExtension(t *testing.T) {
 func TestLoadConfig_EmptyYAMLFile(t *testing.T) {
 	path := writeTempFile(t, "empty.yaml", "")
 
-	cfg, err := LoadConfig(path)
+	cfg, err := loadConfig(path)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

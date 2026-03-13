@@ -18,7 +18,7 @@ func TestMergeConfig_NilFileConfig(t *testing.T) {
 		Method:      "GET",
 	}
 
-	got, err := MergeConfig(nil, cli, map[string]bool{})
+	got, err := mergeConfig(nil, cli, map[string]bool{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -32,7 +32,7 @@ func TestMergeConfig_NilFileConfig(t *testing.T) {
 }
 
 func TestMergeConfig_FileValuesUsedWhenCLIUnchanged(t *testing.T) {
-	file := &FileConfig{
+	file := &fileConfig{
 		Target:      strPtr("https://file.example.com"),
 		Requests:    intPtr(200),
 		Concurrency: intPtr(20),
@@ -51,7 +51,7 @@ func TestMergeConfig_FileValuesUsedWhenCLIUnchanged(t *testing.T) {
 		Method:      "GET",
 	}
 
-	got, err := MergeConfig(file, cli, map[string]bool{})
+	got, err := mergeConfig(file, cli, map[string]bool{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -83,7 +83,7 @@ func TestMergeConfig_FileValuesUsedWhenCLIUnchanged(t *testing.T) {
 }
 
 func TestMergeConfig_CLIOverridesFileValues(t *testing.T) {
-	file := &FileConfig{
+	file := &fileConfig{
 		Target:      strPtr("https://file.example.com"),
 		Requests:    intPtr(200),
 		Concurrency: intPtr(20),
@@ -112,7 +112,7 @@ func TestMergeConfig_CLIOverridesFileValues(t *testing.T) {
 		"header":      true,
 	}
 
-	got, err := MergeConfig(file, cli, changed)
+	got, err := mergeConfig(file, cli, changed)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -141,7 +141,7 @@ func TestMergeConfig_CLIOverridesFileValues(t *testing.T) {
 }
 
 func TestMergeConfig_PartialFileConfig(t *testing.T) {
-	file := &FileConfig{
+	file := &fileConfig{
 		Target:   strPtr("https://file.example.com"),
 		Requests: intPtr(50),
 	}
@@ -154,7 +154,7 @@ func TestMergeConfig_PartialFileConfig(t *testing.T) {
 		Method:      "GET",
 	}
 
-	got, err := MergeConfig(file, cli, map[string]bool{})
+	got, err := mergeConfig(file, cli, map[string]bool{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -177,7 +177,7 @@ func TestMergeConfig_PartialFileConfig(t *testing.T) {
 }
 
 func TestMergeConfig_MethodNormalization(t *testing.T) {
-	file := &FileConfig{
+	file := &fileConfig{
 		Method: strPtr("post"),
 	}
 
@@ -189,7 +189,7 @@ func TestMergeConfig_MethodNormalization(t *testing.T) {
 		Method:      "GET",
 	}
 
-	got, err := MergeConfig(file, cli, map[string]bool{})
+	got, err := mergeConfig(file, cli, map[string]bool{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -200,7 +200,7 @@ func TestMergeConfig_MethodNormalization(t *testing.T) {
 }
 
 func TestMergeConfig_InvalidTimeoutString(t *testing.T) {
-	file := &FileConfig{
+	file := &fileConfig{
 		Timeout: strPtr("not-a-duration"),
 	}
 
@@ -212,7 +212,7 @@ func TestMergeConfig_InvalidTimeoutString(t *testing.T) {
 		Method:      "GET",
 	}
 
-	_, err := MergeConfig(file, cli, map[string]bool{})
+	_, err := mergeConfig(file, cli, map[string]bool{})
 
 	if err == nil {
 		t.Fatal("expected error for invalid timeout string, got nil")
@@ -225,7 +225,7 @@ func TestMergeConfig_InvalidTimeoutString(t *testing.T) {
 }
 
 func TestMergeConfig_CLITargetOverridesFileTarget(t *testing.T) {
-	file := &FileConfig{
+	file := &fileConfig{
 		Target: strPtr("https://file.example.com"),
 	}
 
@@ -237,7 +237,7 @@ func TestMergeConfig_CLITargetOverridesFileTarget(t *testing.T) {
 		Method:      "GET",
 	}
 
-	got, err := MergeConfig(file, cli, map[string]bool{"target": true})
+	got, err := mergeConfig(file, cli, map[string]bool{"target": true})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

@@ -12,7 +12,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type FileConfig struct {
+type fileConfig struct {
 	Target      *string  `json:"target" yaml:"target"`
 	Requests    *int     `json:"requests" yaml:"requests"`
 	Concurrency *int     `json:"concurrency" yaml:"concurrency"`
@@ -23,7 +23,7 @@ type FileConfig struct {
 	Headers     []string `json:"headers" yaml:"headers"`
 }
 
-func LoadConfig(path string) (*FileConfig, error) {
+func loadConfig(path string) (*fileConfig, error) {
 	ext := strings.ToLower(filepath.Ext(path))
 
 	switch ext {
@@ -36,17 +36,17 @@ func LoadConfig(path string) (*FileConfig, error) {
 	}
 }
 
-func loadJSON(path string) (*FileConfig, error) {
+func loadJSON(path string) (*fileConfig, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read config file: %w", err)
 	}
 
 	if len(bytes.TrimSpace(data)) == 0 {
-		return &FileConfig{}, nil
+		return &fileConfig{}, nil
 	}
 
-	var cfg FileConfig
+	var cfg fileConfig
 	if err := json.Unmarshal(data, &cfg); err != nil {
 		return nil, fmt.Errorf("failed to parse JSON config: %w", err)
 	}
@@ -54,17 +54,17 @@ func loadJSON(path string) (*FileConfig, error) {
 	return &cfg, nil
 }
 
-func loadYAML(path string) (*FileConfig, error) {
+func loadYAML(path string) (*fileConfig, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read config file: %w", err)
 	}
 
 	if len(bytes.TrimSpace(data)) == 0 {
-		return &FileConfig{}, nil
+		return &fileConfig{}, nil
 	}
 
-	var cfg FileConfig
+	var cfg fileConfig
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		return nil, fmt.Errorf("failed to parse YAML config: %w", err)
 	}
@@ -72,7 +72,7 @@ func loadYAML(path string) (*FileConfig, error) {
 	return &cfg, nil
 }
 
-func MergeConfig(file *FileConfig, cli RunConfig, changed map[string]bool) (RunConfig, error) {
+func mergeConfig(file *fileConfig, cli RunConfig, changed map[string]bool) (RunConfig, error) {
 	if file == nil {
 		return cli, nil
 	}

@@ -32,11 +32,11 @@ func newRunCmd() *cobra.Command {
 			f := cmd.Flags()
 
 			configPath, _ := f.GetString("config")
-			var fileCfg *FileConfig
+			var fileCfg *fileConfig
 			var err error
 
 			if configPath != "" {
-				fileCfg, err = LoadConfig(configPath)
+				fileCfg, err = loadConfig(configPath)
 				if err != nil {
 					return err
 				}
@@ -74,7 +74,7 @@ func newRunCmd() *cobra.Command {
 				changed["target"] = true
 			}
 
-			config, err := MergeConfig(fileCfg, cliConfig, changed)
+			config, err := mergeConfig(fileCfg, cliConfig, changed)
 			if err != nil {
 				return err
 			}
