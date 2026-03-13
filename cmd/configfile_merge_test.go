@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"strings"
 	"testing"
 	"time"
 )
@@ -17,7 +18,10 @@ func TestMergeConfig_NilFileConfig(t *testing.T) {
 		Method:      "GET",
 	}
 
-	got := MergeConfig(nil, cli, map[string]bool{})
+	got, err := MergeConfig(nil, cli, map[string]bool{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	if got.Target != cli.Target {
 		t.Errorf("Target: got %q, want %q", got.Target, cli.Target)
@@ -47,7 +51,10 @@ func TestMergeConfig_FileValuesUsedWhenCLIUnchanged(t *testing.T) {
 		Method:      "GET",
 	}
 
-	got := MergeConfig(file, cli, map[string]bool{})
+	got, err := MergeConfig(file, cli, map[string]bool{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	if got.Target != "https://file.example.com" {
 		t.Errorf("Target: got %q, want %q", got.Target, "https://file.example.com")
@@ -105,7 +112,10 @@ func TestMergeConfig_CLIOverridesFileValues(t *testing.T) {
 		"header":      true,
 	}
 
-	got := MergeConfig(file, cli, changed)
+	got, err := MergeConfig(file, cli, changed)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	if got.Target != "https://file.example.com" {
 		t.Errorf("Target: got %q, want %q (file value since URL not in changed)", got.Target, "https://file.example.com")
@@ -144,7 +154,10 @@ func TestMergeConfig_PartialFileConfig(t *testing.T) {
 		Method:      "GET",
 	}
 
-	got := MergeConfig(file, cli, map[string]bool{})
+	got, err := MergeConfig(file, cli, map[string]bool{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	if got.Target != "https://file.example.com" {
 		t.Errorf("Target: got %q, want %q", got.Target, "https://file.example.com")
@@ -176,7 +189,10 @@ func TestMergeConfig_MethodNormalization(t *testing.T) {
 		Method:      "GET",
 	}
 
-	got := MergeConfig(file, cli, map[string]bool{})
+	got, err := MergeConfig(file, cli, map[string]bool{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	if got.Method != "POST" {
 		t.Errorf("Method: got %q, want %q (normalized to uppercase)", got.Method, "POST")
@@ -196,10 +212,15 @@ func TestMergeConfig_InvalidTimeoutString(t *testing.T) {
 		Method:      "GET",
 	}
 
-	got := MergeConfig(file, cli, map[string]bool{})
+	_, err := MergeConfig(file, cli, map[string]bool{})
 
-	if got.Timeout != 10*time.Second {
-		t.Errorf("Timeout: got %v, want 10s (should fall back to CLI default on invalid parse)", got.Timeout)
+	if err == nil {
+		t.Fatal("expected error for invalid timeout string, got nil")
+	}
+
+	expectedErr := "invalid timeout format in config file"
+	if err != nil && !strings.Contains(err.Error(), expectedErr) {
+		t.Errorf("expected error to contain %q, got: %v", expectedErr, err)
 	}
 }
 
@@ -216,7 +237,10 @@ func TestMergeConfig_CLITargetOverridesFileTarget(t *testing.T) {
 		Method:      "GET",
 	}
 
-	got := MergeConfig(file, cli, map[string]bool{"target": true})
+	got, err := MergeConfig(file, cli, map[string]bool{"target": true})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	if got.Target != "https://cli.example.com" {
 		t.Errorf("Target: got %q, want %q (CLI override)", got.Target, "https://cli.example.com")

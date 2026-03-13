@@ -71,11 +71,13 @@ func newRunCmd() *cobra.Command {
 				changed[flag.Name] = true
 			})
 			if len(args) > 0 {
-				changed["url"] = true
 				changed["target"] = true
 			}
 
-			config := MergeConfig(fileCfg, cliConfig, changed)
+			config, err := MergeConfig(fileCfg, cliConfig, changed)
+			if err != nil {
+				return err
+			}
 
 			err = config.Validate()
 			if err != nil {

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -302,11 +303,16 @@ func TestRunCommand_ConfigFile(t *testing.T) {
 	var receivedMethod string
 	var receivedAuth string
 	var receivedConcurrency int32
+	var mu sync.Mutex
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		atomic.AddInt32(&receivedConcurrency, 1)
+
+		mu.Lock()
 		receivedMethod = r.Method
 		receivedAuth = r.Header.Get("Authorization")
+		mu.Unlock()
+
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer server.Close()
@@ -373,9 +379,7 @@ requests: 5
 		t.Fatal("expected error for missing target URL, got nil")
 	}
 
-	if !strings.Contains(err.Error(), "invalid target") && !strings.Contains(err.Error(), "missing expected target") {
-		if !strings.Contains(err.Error(), "invalid target URL") {
-			t.Errorf("expected URL validation error, got: %v", err)
-		}
+	if !strings.Contains(err.Error(), "missing target URL") {
+		t.Errorf("expected missing target URL error, got: %v", err)
 	}
 }
