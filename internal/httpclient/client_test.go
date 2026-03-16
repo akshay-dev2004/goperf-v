@@ -499,3 +499,28 @@ func TestRunMultipleConcurrent_NonServerErrorCodes(t *testing.T) {
 		t.Errorf("expected 3 failed requests for 429 responses, got %d", recorder.FailedCount())
 	}
 }
+
+func TestMakeRequestLatency(t *testing.T) {
+	delay := 100 * time.Millisecond
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(delay)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	cfg := Config{
+		Target:  server.URL,
+		Timeout: testTimeout,
+		Method:  "GET",
+	}
+
+	_, duration, err := MakeRequest(context.Background(), &http.Client{}, cfg)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	tolerance := 30 * time.Millisecond
+	if duration < delay || duration > delay+tolerance {
+		t.Errorf("expected latency around %v to %v, got %v", delay, delay+tolerance, duration)
+	}
+}
