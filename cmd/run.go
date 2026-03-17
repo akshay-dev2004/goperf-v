@@ -107,6 +107,7 @@ func newRunCmd() *cobra.Command {
 	cmd.Flags().StringP("body", "b", "", "Request body content")
 	cmd.Flags().StringArrayP("header", "H", []string{}, "HTTP header in 'Key: Value' format (can be repeated)")
 	cmd.Flags().StringP("config", "f", "", "Path to configuration file (JSON/YAML)")
+	cmd.Flags().BoolP("verbose", "v", false, "Enable verbose output")
 
 	return cmd
 }
