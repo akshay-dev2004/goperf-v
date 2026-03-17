@@ -49,6 +49,7 @@ func newRunCmd() *cobra.Command {
 			method, _ := f.GetString("method")
 			body, _ := f.GetString("body")
 			headers, _ := f.GetStringArray("header")
+			verbose, _ := f.GetBool("verbose")
 
 			target := ""
 			if len(args) > 0 {
@@ -64,6 +65,7 @@ func newRunCmd() *cobra.Command {
 				Method:      strings.ToUpper(method),
 				Body:        body,
 				Headers:     headers,
+				Verbose:     verbose,
 			}
 
 			changed := make(map[string]bool)

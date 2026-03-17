@@ -32,6 +32,8 @@ type Config struct {
 	Method      string
 	Body        string
 	Headers     []string
+	Verbose     bool
+	Stderr      io.Writer
 }
 
 type HTTPDoer interface {
