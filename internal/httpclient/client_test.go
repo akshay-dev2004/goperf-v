@@ -499,3 +499,34 @@ func TestRunMultipleConcurrent_NonServerErrorCodes(t *testing.T) {
 		t.Errorf("expected 3 failed requests for 429 responses, got %d", recorder.FailedCount())
 	}
 }
+
+func TestVerboseLogging(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	var stderrBuf strings.Builder
+
+	cfg := Config{
+		Target:      server.URL,
+		Requests:    2,
+		Concurrency: 1,
+		Timeout:     testTimeout,
+		Method:      "GET",
+		Verbose:     true,
+		Stderr:      &stderrBuf,
+	}
+
+	RunMultipleConcurrent(context.Background(), cfg)
+
+	output := stderrBuf.String()
+	if !strings.Contains(output, "Request") {
+		t.Errorf("expected verbose output to contain 'Request', got %q", output)
+	}
+
+	lines := strings.Split(strings.TrimSpace(output), "\n")
+	if len(lines) != 2 {
+		t.Errorf("expected 2 lines of output, got %d", len(lines))
+	}
+}
