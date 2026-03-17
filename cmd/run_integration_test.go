@@ -397,7 +397,7 @@ func TestVerboseE2EExecution(t *testing.T) {
 	cmd.SetOut(&out)
 	cmd.SetErr(&errOut)
 
-	cmd.SetArgs([]string{"run", server.URL, "-n", "2", "-v"})
+	cmd.SetArgs([]string{"run", server.URL, "-n", "4", "-c", "2", "-v"})
 
 	err := cmd.Execute()
 	if err != nil {
@@ -410,7 +410,7 @@ func TestVerboseE2EExecution(t *testing.T) {
 	}
 
 	lines := strings.Split(strings.TrimSpace(stdErrOutput), "\n")
-	if len(lines) != 2 {
-		t.Errorf("expected 2 request logs, got %d", len(lines))
+	if len(lines) != 4 {
+		t.Errorf("expected 4 request logs, got %d", len(lines))
 	}
 }

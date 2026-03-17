@@ -510,8 +510,8 @@ func TestVerboseLogging(t *testing.T) {
 
 	cfg := Config{
 		Target:      server.URL,
-		Requests:    2,
-		Concurrency: 1,
+		Requests:    4,
+		Concurrency: 2,
 		Timeout:     testTimeout,
 		Method:      "GET",
 		Verbose:     true,
@@ -526,7 +526,7 @@ func TestVerboseLogging(t *testing.T) {
 	}
 
 	lines := strings.Split(strings.TrimSpace(output), "\n")
-	if len(lines) != 2 {
-		t.Errorf("expected 2 lines of output, got %d", len(lines))
+	if len(lines) != 4 {
+		t.Errorf("expected 4 lines of output, got %d", len(lines))
 	}
 }
