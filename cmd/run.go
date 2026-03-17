@@ -89,6 +89,7 @@ func newRunCmd() *cobra.Command {
 			u := config.ParsedTarget
 
 			httpCfg := config.ToHTTPConfig()
+			httpCfg.Stderr = cmd.ErrOrStderr()
 
 			if config.Duration > 0 {
 				fmt.Fprintf(cmd.OutOrStdout(), "Running for %v against %s with concurrency %d\n", config.Duration, u, config.Concurrency)
