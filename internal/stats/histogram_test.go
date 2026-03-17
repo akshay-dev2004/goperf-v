@@ -143,6 +143,7 @@ func BenchmarkRecord(b *testing.B) {
 	recorder := NewHistogramRecorder(10 * time.Second)
 	d := 5 * time.Millisecond
 
+	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		recorder.Record(d)

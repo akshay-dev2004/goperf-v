@@ -582,6 +582,7 @@ func BenchmarkMakeRequest(b *testing.B) {
 	}
 	client := &http.Client{}
 
+	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, _, _ = MakeRequest(context.Background(), client, cfg)
