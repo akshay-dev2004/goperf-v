@@ -122,7 +122,7 @@ func RunMultipleConcurrent(ctx context.Context, cfg Config) *stats.HistogramReco
 					if err != nil {
 						fmt.Fprintf(cfg.Stderr, "Request error: %v\n", err)
 					} else {
-						fmt.Fprintf(cfg.Stderr, "Request [%d]: %v\n", statusCode, duration)
+						fmt.Fprintf(cfg.Stderr, "Request [%d]: %8.2fms\n", statusCode, float64(duration.Microseconds())/1000.0)
 					}
 				}
 				if err != nil {
@@ -172,7 +172,7 @@ func RunForDuration(ctx context.Context, cfg Config) *stats.HistogramRecorder {
 					if err != nil {
 						fmt.Fprintf(cfg.Stderr, "Request error: %v\n", err)
 					} else {
-						fmt.Fprintf(cfg.Stderr, "Request [%d]: %v\n", statusCode, d)
+						fmt.Fprintf(cfg.Stderr, "Request [%d]: %8.2fms\n", statusCode, float64(d.Microseconds())/1000.0)
 					}
 				}
 				if err != nil {
