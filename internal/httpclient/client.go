@@ -120,7 +120,9 @@ func RunMultipleConcurrent(ctx context.Context, cfg Config) *stats.HistogramReco
 				statusCode, duration, err := MakeRequest(ctx, client, cfg)
 				if cfg.Verbose && cfg.Stderr != nil {
 					if err != nil {
-						fmt.Fprintf(cfg.Stderr, "Request error: %v\n", err)
+						if !isContextCancellation(err) {
+							fmt.Fprintf(cfg.Stderr, "Request error: %v\n", err)
+						}
 					} else {
 						fmt.Fprintf(cfg.Stderr, "Request [%d]: %8.2fms\n", statusCode, float64(duration.Microseconds())/1000.0)
 					}
@@ -170,7 +172,9 @@ func RunForDuration(ctx context.Context, cfg Config) *stats.HistogramRecorder {
 				statusCode, d, err := MakeRequest(reqCtx, client, cfg)
 				if cfg.Verbose && cfg.Stderr != nil {
 					if err != nil {
-						fmt.Fprintf(cfg.Stderr, "Request error: %v\n", err)
+						if !isContextCancellation(err) {
+							fmt.Fprintf(cfg.Stderr, "Request error: %v\n", err)
+						}
 					} else {
 						fmt.Fprintf(cfg.Stderr, "Request [%d]: %8.2fms\n", statusCode, float64(d.Microseconds())/1000.0)
 					}
