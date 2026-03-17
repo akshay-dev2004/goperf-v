@@ -138,3 +138,13 @@ func TestHistogramRecorder_NearTimeoutValue(t *testing.T) {
 		t.Errorf("expected 0 failures, got %d", recorder.FailedCount())
 	}
 }
+
+func BenchmarkRecord(b *testing.B) {
+	recorder := NewHistogramRecorder(10 * time.Second)
+	d := 5 * time.Millisecond
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		recorder.Record(d)
+	}
+}
