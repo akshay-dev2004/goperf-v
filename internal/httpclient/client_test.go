@@ -585,6 +585,9 @@ func BenchmarkMakeRequest(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _, _ = MakeRequest(context.Background(), client, cfg)
+		_, _, err := MakeRequest(context.Background(), client, cfg)
+		if err != nil {
+			b.Fatalf("MakeRequest failed: %v", err)
+		}
 	}
 }
