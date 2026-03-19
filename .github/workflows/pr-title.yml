@@ -5,8 +5,9 @@ on:
     types: [opened, edited, synchronize, reopened]
 
 permissions:
-  pull-requests: write
+  pull-requests: read
   contents: read
+  statuses: write
 
 jobs:
   validate-pr-title:
@@ -31,5 +32,5 @@ jobs:
           subjectPattern: ^[a-z].+$
           subjectPatternError: |
             The subject must start with a lowercase letter.
-          wip: true
+          wip: false
           validateSingleCommit: false
