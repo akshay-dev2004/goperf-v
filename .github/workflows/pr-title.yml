@@ -1,0 +1,36 @@
+name: PR Title Check
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  pull-requests: read
+  contents: read
+  statuses: write
+
+jobs:
+  validate-pr-title:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: amannn/action-semantic-pull-request@v6.1.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            docs
+            ci
+            chore
+            refactor
+            test
+            style
+            perf
+            build
+          requireScope: false
+          subjectPattern: ^[a-z].+$
+          subjectPatternError: |
+            The subject must start with a lowercase letter.
+          wip: false
+          validateSingleCommit: false
