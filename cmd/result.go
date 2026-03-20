@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"time"
@@ -93,6 +94,11 @@ Throughput: %.1f requests/sec
 }
 
 func (r *result) WriteJSON(w io.Writer) error {
-	_, err := fmt.Fprint(w, "{}")
-	return err
+	output := struct {
+		Target string `json:"target"`
+	}{
+		Target: r.Target,
+	}
+
+	return json.NewEncoder(w).Encode(output)
 }

@@ -196,3 +196,15 @@ func TestResultWriteJSON_ReturnsValidJSON(t *testing.T) {
 		t.Fatalf("failed to parse JSON: %v\nOutput was: %q", err, buf.String())
 	}
 }
+
+func TestResultWriteJSON_IncludesTarget(t *testing.T) {
+	r := &result{Target: "http://test-target.com"}
+	var buf bytes.Buffer
+	_ = r.WriteJSON(&buf)
+	var output map[string]interface{}
+	_ = json.Unmarshal(buf.Bytes(), &output)
+
+	if output["target"] != "http://test-target.com" {
+		t.Errorf("expected target 'http://test-target.com', got %v", output["target"])
+	}
+}
