@@ -183,124 +183,56 @@ Throughput: 1.0 requests/sec
 	}
 }
 
-func TestResultWriteJSON_ReturnsValidJSON(t *testing.T) {
-	r := &result{}
-	var buf bytes.Buffer
-	err := r.WriteJSON(&buf)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	var output map[string]interface{}
-	if err := json.Unmarshal(buf.Bytes(), &output); err != nil {
-		t.Fatalf("failed to parse JSON: %v\nOutput was: %q", err, buf.String())
-	}
-}
-
-func TestResultWriteJSON_IncludesTarget(t *testing.T) {
-	r := &result{Target: "http://test-target.com"}
-	var buf bytes.Buffer
-	_ = r.WriteJSON(&buf)
-	var output map[string]interface{}
-	_ = json.Unmarshal(buf.Bytes(), &output)
-
-	if output["target"] != "http://test-target.com" {
-		t.Errorf("expected target 'http://test-target.com', got %v", output["target"])
-	}
-}
-
-func TestResultWriteJSON_IncludesCounters(t *testing.T) {
-	r := &result{
-		Target:    "http://test.com",
-		Total:     10,
-		Succeeded: 8,
-		Failed:    2,
-	}
-
-	var buf bytes.Buffer
-	_ = r.WriteJSON(&buf)
-
-	var output map[string]interface{}
-	_ = json.Unmarshal(buf.Bytes(), &output)
-
-	if output["total"] != float64(10) {
-		t.Errorf("expected total 10, got %v", output["total"])
-	}
-	if output["succeeded"] != float64(8) {
-		t.Errorf("expected succeeded 8, got %v", output["succeeded"])
-	}
-	if output["failed"] != float64(2) {
-		t.Errorf("expected failed 2, got %v", output["failed"])
-	}
-}
-
-func TestResultWriteJSON_IncludesElapsedSec(t *testing.T) {
-	r := &result{
-		Target:  "http://test.com",
-		Elapsed: 2500 * time.Millisecond,
-	}
-
-	var buf bytes.Buffer
-	_ = r.WriteJSON(&buf)
-
-	var output map[string]interface{}
-	_ = json.Unmarshal(buf.Bytes(), &output)
-
-	if output["elapsed_sec"] != float64(2.5) {
-		t.Errorf("expected elapsed_sec 2.5, got %v", output["elapsed_sec"])
-	}
-}
-
-func TestResultWriteJSON_IncludesLatencyMs(t *testing.T) {
-	r := &result{
-		Target: "http://test.com",
-		Min:    10 * time.Millisecond,
-		Max:    100 * time.Millisecond,
-		Avg:    50 * time.Millisecond,
-		P50:    45 * time.Millisecond,
-		P90:    80 * time.Millisecond,
-		P99:    95 * time.Millisecond,
-	}
-
-	var buf bytes.Buffer
-	_ = r.WriteJSON(&buf)
-
-	var output map[string]interface{}
-	_ = json.Unmarshal(buf.Bytes(), &output)
-
-	if output["min_ms"] != float64(10) {
-		t.Errorf("expected min_ms 10, got %v", output["min_ms"])
-	}
-	if output["max_ms"] != float64(100) {
-		t.Errorf("expected max_ms 100, got %v", output["max_ms"])
-	}
-	if output["avg_ms"] != float64(50) {
-		t.Errorf("expected avg_ms 50, got %v", output["avg_ms"])
-	}
-	if output["p50_ms"] != float64(45) {
-		t.Errorf("expected p50_ms 45, got %v", output["p50_ms"])
-	}
-	if output["p90_ms"] != float64(80) {
-		t.Errorf("expected p90_ms 80, got %v", output["p90_ms"])
-	}
-	if output["p99_ms"] != float64(95) {
-		t.Errorf("expected p99_ms 95, got %v", output["p99_ms"])
-	}
-}
-
-func TestResultWriteJSON_IncludesThroughput(t *testing.T) {
+func TestResultWriteJSON_Fields(t *testing.T) {
 	r := &result{
 		Target:     "http://test.com",
+		Elapsed:    2500 * time.Millisecond,
+		Total:      10,
+		Succeeded:  8,
+		Failed:     2,
+		Min:        10 * time.Millisecond,
+		Max:        100 * time.Millisecond,
+		Avg:        50 * time.Millisecond,
+		P50:        45 * time.Millisecond,
+		P90:        80 * time.Millisecond,
+		P99:        95 * time.Millisecond,
 		Throughput: 125.5,
 	}
 
 	var buf bytes.Buffer
-	_ = r.WriteJSON(&buf)
+	if err := r.WriteJSON(&buf); err != nil {
+		t.Fatalf("WriteJSON failed: %v", err)
+	}
 
 	var output map[string]interface{}
-	_ = json.Unmarshal(buf.Bytes(), &output)
+	if err := json.Unmarshal(buf.Bytes(), &output); err != nil {
+		t.Fatalf("failed to parse JSON: %v", err)
+	}
 
-	if output["throughput"] != float64(125.5) {
-		t.Errorf("expected throughput 125.5, got %v", output["throughput"])
+	tests := []struct {
+		key  string
+		want interface{}
+	}{
+		{"target", "http://test.com"},
+		{"elapsed_sec", 2.5},
+		{"total", 10.0},
+		{"succeeded", 8.0},
+		{"failed", 2.0},
+		{"min_ms", 10.0},
+		{"max_ms", 100.0},
+		{"avg_ms", 50.0},
+		{"p50_ms", 45.0},
+		{"p90_ms", 80.0},
+		{"p99_ms", 95.0},
+		{"throughput", 125.5},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.key, func(t *testing.T) {
+			got := output[tt.key]
+			if got != tt.want {
+				t.Errorf("field %q: expected %v, got %v", tt.key, tt.want, got)
+			}
+		})
 	}
 }

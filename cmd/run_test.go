@@ -2,13 +2,13 @@ package cmd
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
 	"github.com/infraspecdev/goperf/internal/httpclient"
-	"github.com/infraspecdev/goperf/internal/stats"
 )
 
 func TestFlagRegistration(t *testing.T) {
@@ -84,13 +84,19 @@ func TestFlagRegistration(t *testing.T) {
 }
 
 func TestRunCommand_OutputJSON(t *testing.T) {
-	var buf bytes.Buffer
-	cfg := httpclient.Config{Target: "http://example.com"}
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
 
-	mockRunner := func(ctx context.Context, cfg httpclient.Config) *stats.HistogramRecorder {
-		return stats.NewHistogramRecorder(10 * time.Second)
+	var buf bytes.Buffer
+	cfg := httpclient.Config{
+		Target:      ts.URL,
+		Requests:    1,
+		Concurrency: 1,
+		Timeout:     5 * time.Second,
 	}
-	err := runCommand(mockRunner, cfg, "json", &buf)
+	err := runCommand(cfg, "json", &buf)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
