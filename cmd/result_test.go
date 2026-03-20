@@ -233,3 +233,20 @@ func TestResultWriteJSON_IncludesCounters(t *testing.T) {
 		t.Errorf("expected failed 2, got %v", output["failed"])
 	}
 }
+
+func TestResultWriteJSON_IncludesElapsedSec(t *testing.T) {
+	r := &result{
+		Target:  "http://test.com",
+		Elapsed: 2500 * time.Millisecond,
+	}
+
+	var buf bytes.Buffer
+	_ = r.WriteJSON(&buf)
+
+	var output map[string]interface{}
+	_ = json.Unmarshal(buf.Bytes(), &output)
+
+	if output["elapsed_sec"] != float64(2.5) {
+		t.Errorf("expected elapsed_sec 2.5, got %v", output["elapsed_sec"])
+	}
+}
