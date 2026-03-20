@@ -100,13 +100,27 @@ func (r *result) WriteJSON(w io.Writer) error {
 		Total      int64   `json:"total"`
 		Succeeded  int64   `json:"succeeded"`
 		Failed     int64   `json:"failed"`
+		MinMs      int64   `json:"min_ms"`
+		MaxMs      int64   `json:"max_ms"`
+		AvgMs      int64   `json:"avg_ms"`
+		P50Ms      int64   `json:"p50_ms"`
+		P90Ms      int64   `json:"p90_ms"`
+		P99Ms      int64   `json:"p99_ms"`
 	}{
 		Target:     r.Target,
 		ElapsedSec: r.Elapsed.Seconds(),
 		Total:      r.Total,
 		Succeeded:  r.Succeeded,
 		Failed:     r.Failed,
+		MinMs:      r.Min.Milliseconds(),
+		MaxMs:      r.Max.Milliseconds(),
+		AvgMs:      r.Avg.Milliseconds(),
+		P50Ms:      r.P50.Milliseconds(),
+		P90Ms:      r.P90.Milliseconds(),
+		P99Ms:      r.P99.Milliseconds(),
 	}
 
-	return json.NewEncoder(w).Encode(output)
+	encoder := json.NewEncoder(w)
+	encoder.SetIndent("", "  ")
+	return encoder.Encode(output)
 }

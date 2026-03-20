@@ -250,3 +250,40 @@ func TestResultWriteJSON_IncludesElapsedSec(t *testing.T) {
 		t.Errorf("expected elapsed_sec 2.5, got %v", output["elapsed_sec"])
 	}
 }
+
+func TestResultWriteJSON_IncludesLatencyMs(t *testing.T) {
+	r := &result{
+		Target: "http://test.com",
+		Min:    10 * time.Millisecond,
+		Max:    100 * time.Millisecond,
+		Avg:    50 * time.Millisecond,
+		P50:    45 * time.Millisecond,
+		P90:    80 * time.Millisecond,
+		P99:    95 * time.Millisecond,
+	}
+
+	var buf bytes.Buffer
+	_ = r.WriteJSON(&buf)
+
+	var output map[string]interface{}
+	_ = json.Unmarshal(buf.Bytes(), &output)
+
+	if output["min_ms"] != float64(10) {
+		t.Errorf("expected min_ms 10, got %v", output["min_ms"])
+	}
+	if output["max_ms"] != float64(100) {
+		t.Errorf("expected max_ms 100, got %v", output["max_ms"])
+	}
+	if output["avg_ms"] != float64(50) {
+		t.Errorf("expected avg_ms 50, got %v", output["avg_ms"])
+	}
+	if output["p50_ms"] != float64(45) {
+		t.Errorf("expected p50_ms 45, got %v", output["p50_ms"])
+	}
+	if output["p90_ms"] != float64(80) {
+		t.Errorf("expected p90_ms 80, got %v", output["p90_ms"])
+	}
+	if output["p99_ms"] != float64(95) {
+		t.Errorf("expected p99_ms 95, got %v", output["p99_ms"])
+	}
+}
