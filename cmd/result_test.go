@@ -287,3 +287,20 @@ func TestResultWriteJSON_IncludesLatencyMs(t *testing.T) {
 		t.Errorf("expected p99_ms 95, got %v", output["p99_ms"])
 	}
 }
+
+func TestResultWriteJSON_IncludesThroughput(t *testing.T) {
+	r := &result{
+		Target:     "http://test.com",
+		Throughput: 125.5,
+	}
+
+	var buf bytes.Buffer
+	_ = r.WriteJSON(&buf)
+
+	var output map[string]interface{}
+	_ = json.Unmarshal(buf.Bytes(), &output)
+
+	if output["throughput"] != float64(125.5) {
+		t.Errorf("expected throughput 125.5, got %v", output["throughput"])
+	}
+}

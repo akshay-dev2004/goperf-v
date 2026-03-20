@@ -106,6 +106,7 @@ func (r *result) WriteJSON(w io.Writer) error {
 		P50Ms      int64   `json:"p50_ms"`
 		P90Ms      int64   `json:"p90_ms"`
 		P99Ms      int64   `json:"p99_ms"`
+		Throughput float64 `json:"throughput"`
 	}{
 		Target:     r.Target,
 		ElapsedSec: r.Elapsed.Seconds(),
@@ -118,6 +119,7 @@ func (r *result) WriteJSON(w io.Writer) error {
 		P50Ms:      r.P50.Milliseconds(),
 		P90Ms:      r.P90.Milliseconds(),
 		P99Ms:      r.P99.Milliseconds(),
+		Throughput: r.Throughput,
 	}
 
 	encoder := json.NewEncoder(w)
