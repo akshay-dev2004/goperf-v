@@ -20,6 +20,7 @@ func TestFlagRegistration(t *testing.T) {
 		{"header", "H", []string{}},
 		{"config", "f", ""},
 		{"verbose", "v", false},
+		{"output", "o", "text"},
 	}
 
 	cmd := newRunCmd()
