@@ -1,8 +1,14 @@
 package cmd
 
 import (
+	"bytes"
+	"context"
+	"encoding/json"
 	"testing"
 	"time"
+
+	"github.com/infraspecdev/goperf/internal/httpclient"
+	"github.com/infraspecdev/goperf/internal/stats"
 )
 
 func TestFlagRegistration(t *testing.T) {
@@ -74,5 +80,23 @@ func TestFlagRegistration(t *testing.T) {
 				t.Errorf("expected default %v, got %v", tt.wantDef, got)
 			}
 		})
+	}
+}
+
+func TestRunCommand_OutputJSON(t *testing.T) {
+	var buf bytes.Buffer
+	cfg := httpclient.Config{Target: "http://example.com"}
+
+	mockRunner := func(ctx context.Context, cfg httpclient.Config) *stats.HistogramRecorder {
+		return stats.NewHistogramRecorder(10 * time.Second)
+	}
+	err := runCommand(mockRunner, cfg, "json", &buf)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var output map[string]interface{}
+	if err := json.Unmarshal(buf.Bytes(), &output); err != nil {
+		t.Fatalf("expected valid JSON output, got parsing error: %v\nOutput was: %s", err, buf.String())
 	}
 }

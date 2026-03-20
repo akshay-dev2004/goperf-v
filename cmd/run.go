@@ -47,6 +47,7 @@ func newRunCmd() *cobra.Command {
 			body, _ := f.GetString("body")
 			headers, _ := f.GetStringArray("header")
 			verbose, _ := f.GetBool("verbose")
+			outputFormat, _ := f.GetString("output")
 
 			target := ""
 			if len(args) > 0 {
@@ -89,12 +90,16 @@ func newRunCmd() *cobra.Command {
 			httpCfg.Stderr = cmd.ErrOrStderr()
 
 			if config.Duration > 0 {
-				_, _ = fmt.Fprintf(cmd.OutOrStdout(), "Running for %v against %s with concurrency %d\n", config.Duration, u, config.Concurrency)
+				if outputFormat != "json" {
+					_, _ = fmt.Fprintf(cmd.OutOrStdout(), "Running for %v against %s with concurrency %d\n", config.Duration, u, config.Concurrency)
+				}
 			} else {
-				_, _ = fmt.Fprintf(cmd.OutOrStdout(), "Making %d requests to %v with concurrency %d\n", config.Requests, u, config.Concurrency)
+				if outputFormat != "json" {
+					_, _ = fmt.Fprintf(cmd.OutOrStdout(), "Making %d requests to %v with concurrency %d\n", config.Requests, u, config.Concurrency)
+				}
 			}
 
-			return runCommand(httpCfg, cmd.OutOrStdout())
+			return runCommand(httpCfg, outputFormat, cmd.OutOrStdout())
 		},
 	}
 
@@ -112,7 +117,7 @@ func newRunCmd() *cobra.Command {
 	return cmd
 }
 
-func runCommand(cfg httpclient.Config, out io.Writer) error {
+func runCommand(cfg httpclient.Config, outputFormat string, out io.Writer) error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 
@@ -120,5 +125,10 @@ func runCommand(cfg httpclient.Config, out io.Writer) error {
 	recorder := httpclient.Run(ctx, cfg)
 	elapsed := time.Since(start)
 
-	return newResult(recorder, cfg.Target, elapsed).WriteText(out)
+	res := newResult(recorder, cfg.Target, elapsed)
+
+	if outputFormat == "json" {
+		return res.WriteJSON(out)
+	}
+	return res.WriteText(out)
 }
