@@ -111,7 +111,6 @@ func TestRunCommand_OutputJSON(t *testing.T) {
 func TestRunCmd_Help(t *testing.T) {
 	cmd := newRunCmd()
 	var buf bytes.Buffer
-	cmd.OutOrStdout()
 	cmd.SetOut(&buf)
 	cmd.SetArgs([]string{"--help"})
 

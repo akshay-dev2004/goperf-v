@@ -212,10 +212,6 @@ Throughput: 1.0 requests/sec
 	}
 }
 
-func contains(s, substr string) bool {
-	return bytes.Contains([]byte(s), []byte(substr))
-}
-
 func TestResultWriteText_AllFailed(t *testing.T) {
 	recorder := stats.NewHistogramRecorder(10 * time.Second)
 	recorder.RecordFailure()
