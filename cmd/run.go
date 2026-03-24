@@ -123,7 +123,7 @@ Latency Percentiles:
 	cmd.Flags().IntP("requests", "n", 1, "Number of requests to execute")
 	cmd.Flags().DurationP("timeout", "t", 10*time.Second, "Timeout per request")
 	cmd.Flags().IntP("concurrency", "c", 1, "Number of concurrent workers")
-	cmd.Flags().DurationP("duration", "d", 0, "Duration to run the test (e.g., 10s, 1m)")
+	cmd.Flags().DurationP("duration", "d", 0, "Duration to run the test. Overrides -n when set (e.g., 10s, 1m)")
 	cmd.Flags().StringP("method", "m", "GET", "HTTP method to use")
 	cmd.Flags().StringP("body", "b", "", "Request body content")
 	cmd.Flags().StringArrayP("header", "H", []string{}, "HTTP header in 'Key: Value' format (can be repeated)")
