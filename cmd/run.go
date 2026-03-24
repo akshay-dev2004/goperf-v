@@ -92,6 +92,10 @@ Latency Percentiles:
 				return err
 			}
 
+			if config.Duration > 0 {
+				config.Requests = 0
+			}
+
 			err = config.Validate()
 			if err != nil {
 				return err
