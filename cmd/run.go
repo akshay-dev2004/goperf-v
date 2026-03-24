@@ -108,7 +108,11 @@ Latency Percentiles:
 				}
 			} else {
 				if outputFormat != "json" {
-					_, _ = fmt.Fprintf(cmd.OutOrStdout(), "Making %d requests to %v with concurrency %d\n", config.Requests, u, config.Concurrency)
+					requestWord := "requests"
+					if config.Requests == 1 {
+						requestWord = "request"
+					}
+					_, _ = fmt.Fprintf(cmd.OutOrStdout(), "Making %d %s to %v with concurrency %d\n", config.Requests, requestWord, u, config.Concurrency)
 				}
 			}
 
