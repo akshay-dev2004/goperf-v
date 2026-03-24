@@ -47,7 +47,7 @@ func TestRootCmdNoArgsShowHelp(t *testing.T) {
 	var out bytes.Buffer
 	cmd := NewRootCmd("dev (test)")
 	cmd.SetOut(&out)
-	cmd.SetArgs([]string{}) // No args
+	cmd.SetArgs([]string{})
 
 	err := cmd.Execute()
 	if err != nil {
