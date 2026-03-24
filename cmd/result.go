@@ -69,7 +69,7 @@ func newResult(recorder *stats.HistogramRecorder, target string, elapsed time.Du
 func (r *result) WriteText(w io.Writer) error {
 	_, err := fmt.Fprintf(w, `
 Target:     %s
-Duration:   %.1fs
+Duration:   %.3fs
 Requests:   %d total (%d succeeded, %d failed)
 `, r.Target, r.Elapsed.Seconds(), r.Total, r.Succeeded, r.Failed)
 	if err != nil {
