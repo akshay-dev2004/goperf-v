@@ -41,6 +41,10 @@ if [ "$OS_NAME" = "darwin" ] && [ "$ARCH" = "amd64" ]; then
   error "macOS Intel (amd64) is not supported. Please build from source."
 fi
 
+if [ "$OS_NAME" = "windows" ] && [ "$ARCH" = "arm64" ]; then
+  error "Windows ARM64 is not supported. Please build from source."
+fi
+
 BINARY_NAME="goperf-${OS_NAME}-${ARCH}"
 EXE_NAME="goperf"
 if [ "$OS_NAME" = "windows" ]; then

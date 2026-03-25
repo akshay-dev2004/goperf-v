@@ -13,6 +13,11 @@ switch ($RawArch) {
     default { Write-Error "Unsupported architecture: $RawArch"; exit 1 }
 }
 
+if ($Arch -eq "arm64") {
+    Write-Error "Windows ARM64 is not supported. Please build from source."
+    exit 1
+}
+
 $BinaryName = "goperf-windows-${Arch}.exe"
 
 if ($Version -eq "latest") {
