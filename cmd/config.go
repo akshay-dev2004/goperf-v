@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"net/url"
+	"os"
 	"sort"
 	"strings"
 	"time"
@@ -30,6 +31,7 @@ type RunConfig struct {
 	Duration     time.Duration
 	Method       string
 	Body         string
+	BodyFile     string
 	Headers      []string
 	Verbose      bool
 }
@@ -57,6 +59,17 @@ func (c *RunConfig) Validate() error {
 		return fmt.Errorf("invalid target URL provided: missing scheme (e.g., http:// or https://) or host")
 	}
 	c.ParsedTarget = u
+
+	if c.BodyFile != "" {
+		if c.Body != "" {
+			return fmt.Errorf("cannot use both -b (body string) and -D (body file)")
+		}
+		data, err := os.ReadFile(c.BodyFile)
+		if err != nil {
+			return fmt.Errorf("failed to read body file %q: %w", c.BodyFile, err)
+		}
+		c.Body = string(data)
+	}
 
 	if c.Concurrency <= 0 {
 		return fmt.Errorf("concurrency must be positive, got %d", c.Concurrency)

@@ -20,6 +20,7 @@ type fileConfig struct {
 	Duration    *string  `json:"duration" yaml:"duration"`
 	Method      *string  `json:"method" yaml:"method"`
 	Body        *string  `json:"body" yaml:"body"`
+	BodyFile    *string  `json:"body_file" yaml:"body_file"`
 	Headers     []string `json:"headers" yaml:"headers"`
 	Verbose     *bool    `json:"verbose" yaml:"verbose"`
 }
@@ -114,6 +115,10 @@ func mergeConfig(file *fileConfig, cli RunConfig, changed map[string]bool) (RunC
 
 	if file.Body != nil && !changed["body"] {
 		merged.Body = *file.Body
+	}
+
+	if file.BodyFile != nil && !changed["body-file"] {
+		merged.BodyFile = *file.BodyFile
 	}
 
 	if len(file.Headers) > 0 && !changed["header"] {
