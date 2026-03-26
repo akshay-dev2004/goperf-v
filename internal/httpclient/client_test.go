@@ -57,6 +57,54 @@ func TestMakeRequestSuccess(t *testing.T) {
 	}
 }
 
+func TestMakeRequest_DefaultUserAgent(t *testing.T) {
+	var gotUA string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotUA = r.Header.Get("User-Agent")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	_, _, err := MakeRequest(context.Background(), &http.Client{}, Config{
+		Target:  server.URL,
+		Timeout: testTimeout,
+		Method:  "GET",
+		Version: "1.2.3",
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if gotUA != "goperf/1.2.3" {
+		t.Errorf("expected User-Agent 'goperf/1.2.3', got %q", gotUA)
+	}
+}
+
+func TestMakeRequest_UserAgentOverride(t *testing.T) {
+	var gotUAValues []string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotUAValues = r.Header.Values("User-Agent")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	_, _, err := MakeRequest(context.Background(), &http.Client{}, Config{
+		Target:  server.URL,
+		Timeout: testTimeout,
+		Method:  "GET",
+		Version: "1.2.3",
+		Headers: []string{"User-Agent: custom-agent/9.9"},
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if len(gotUAValues) != 1 {
+		t.Errorf("expected exactly 1 User-Agent value (no duplicates), got %v", gotUAValues)
+	}
+	if gotUAValues[0] != "custom-agent/9.9" {
+		t.Errorf("expected User-Agent 'custom-agent/9.9', got %q", gotUAValues[0])
+	}
+}
+
 func TestMakeRequest_Errors(t *testing.T) {
 	tests := []struct {
 		name          string

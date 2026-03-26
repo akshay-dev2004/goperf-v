@@ -68,13 +68,15 @@ func MakeRequest(ctx context.Context, client HTTPDoer, cfg Config) (statusCode i
 		return 0, 0, err
 	}
 
-	req.Header.Set("User-Agent", fmt.Sprintf("goperf/%s", cfg.Version))
-
 	for _, h := range cfg.Headers {
 		parts := strings.SplitN(h, ":", 2)
 		if len(parts) == 2 {
 			req.Header.Add(strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1]))
 		}
+	}
+
+	if req.Header.Get("User-Agent") == "" {
+		req.Header.Set("User-Agent", fmt.Sprintf("goperf/%s", cfg.Version))
 	}
 
 	if cfg.Body != "" && req.Header.Get("Content-Type") == "" {
