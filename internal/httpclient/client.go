@@ -35,6 +35,7 @@ type Config struct {
 	Body        string
 	Headers     []string
 	Verbose     bool
+	Version     string
 	Stderr      io.Writer
 }
 
@@ -72,6 +73,10 @@ func MakeRequest(ctx context.Context, client HTTPDoer, cfg Config) (statusCode i
 		if len(parts) == 2 {
 			req.Header.Add(strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1]))
 		}
+	}
+
+	if req.Header.Get("User-Agent") == "" {
+		req.Header.Set("User-Agent", fmt.Sprintf("goperf/%s", cfg.Version))
 	}
 
 	if cfg.Body != "" && req.Header.Get("Content-Type") == "" {
