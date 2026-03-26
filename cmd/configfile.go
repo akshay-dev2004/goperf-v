@@ -117,6 +117,10 @@ func mergeConfig(file *fileConfig, cli RunConfig, changed map[string]bool) (RunC
 		merged.Body = *file.Body
 	}
 
+	if file.BodyFile != nil && !changed["body-file"] {
+		merged.BodyFile = *file.BodyFile
+	}
+
 	if len(file.Headers) > 0 && !changed["header"] {
 		merged.Headers = make([]string, len(file.Headers))
 		copy(merged.Headers, file.Headers)

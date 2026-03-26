@@ -54,7 +54,7 @@ Latency Percentiles:
 			duration, _ := f.GetDuration("duration")
 			method, _ := f.GetString("method")
 			body, _ := f.GetString("body")
-			bodyFile, _ := f.GetString("bodyfile")
+			bodyFile, _ := f.GetString("body-file")
 			headers, _ := f.GetStringArray("header")
 			verbose, _ := f.GetBool("verbose")
 			outputFormat, _ := f.GetString("output")
