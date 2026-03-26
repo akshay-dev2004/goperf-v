@@ -35,6 +35,7 @@ type Config struct {
 	Body        string
 	Headers     []string
 	Verbose     bool
+	Version     string
 	Stderr      io.Writer
 }
 
@@ -66,6 +67,8 @@ func MakeRequest(ctx context.Context, client HTTPDoer, cfg Config) (statusCode i
 	if err != nil {
 		return 0, 0, err
 	}
+
+	req.Header.Set("User-Agent", fmt.Sprintf("goperf/%s", cfg.Version))
 
 	for _, h := range cfg.Headers {
 		parts := strings.SplitN(h, ":", 2)
