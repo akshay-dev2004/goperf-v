@@ -54,6 +54,7 @@ Latency Percentiles:
 			duration, _ := f.GetDuration("duration")
 			method, _ := f.GetString("method")
 			body, _ := f.GetString("body")
+			bodyFile, _ := f.GetString("bodyfile")
 			headers, _ := f.GetStringArray("header")
 			verbose, _ := f.GetBool("verbose")
 			outputFormat, _ := f.GetString("output")
@@ -75,6 +76,7 @@ Latency Percentiles:
 				Duration:    duration,
 				Method:      strings.ToUpper(method),
 				Body:        body,
+				BodyFile:    bodyFile,
 				Headers:     headers,
 				Verbose:     verbose,
 			}
@@ -135,6 +137,7 @@ Latency Percentiles:
 	cmd.Flags().DurationP("duration", "d", 0, "Duration to run the test. Overrides -n when set (e.g., 10s, 1m)")
 	cmd.Flags().StringP("method", "m", "GET", "HTTP method to use")
 	cmd.Flags().StringP("body", "b", "", "Request body content")
+	cmd.Flags().StringP("bodyfile", "D", "", "Path to file containing the request body")
 	cmd.Flags().StringArrayP("header", "H", []string{}, "HTTP header in 'Key: Value' format (can be repeated)")
 	cmd.Flags().StringP("config", "f", "", "Path to configuration file (JSON/YAML)")
 	cmd.Flags().BoolP("verbose", "v", false, "Enable verbose output")

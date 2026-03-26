@@ -20,6 +20,7 @@ type fileConfig struct {
 	Duration    *string  `json:"duration" yaml:"duration"`
 	Method      *string  `json:"method" yaml:"method"`
 	Body        *string  `json:"body" yaml:"body"`
+	BodyFile    *string  `json:"body_file" yaml:"body_file"`
 	Headers     []string `json:"headers" yaml:"headers"`
 	Verbose     *bool    `json:"verbose" yaml:"verbose"`
 }
